@@ -581,6 +581,10 @@ class csrng_scoreboard extends cip_base_scoreboard #(
             `DV_CHECK_EQ_FATAL(cs_item[app].genbits_q[i], prd_genbits_q[app][i])
             // Check if the FIPS compliance bit is set correctly.
             `DV_CHECK_EQ_FATAL(cs_item[app].fips_q[i], cfg.compliance[app])
+            // genbits_valid is always true for the HW applications.
+            cov_vif.cg_csrng_genbits_sample(
+                .genbits_valid(1'b1),
+                .genbits_fips(cs_item[app].fips_q[i]));
           end
           // Deletes the predicted genbits before the next comparison.
           prd_genbits_q[app].delete();
