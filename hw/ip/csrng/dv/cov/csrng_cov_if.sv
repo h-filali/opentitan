@@ -430,11 +430,21 @@ interface csrng_cov_if (
                                                     iff(read_genbits_reg);
   endgroup
 
-  covergroup csrng_genbits_cg with function sample(bit genbits_fips, bit genbits_valid);
+  covergroup csrng_cmd_genbits_cg with function sample(bit genbits_fips, bit genbits_valid);
     option.per_instance  = 1;
-    option.name          = "csrng_genbits_cg";
-    // Coverpoint for indicating FIPS/CC compliant bits on genbits register
+    option.name          = "csrng_cmd_genbits_cg";
+    // Coverpoint for indicating FIPS/CC compliant bits on genbits command response.
     genbits_fips_cp: coverpoint genbits_fips iff (genbits_valid) {
+      bins fips_compliant = { 1'b1 };
+      bins fips_non_compliant = { 1'b0 };
+    }
+  endgroup
+
+  covergroup csrng_entropy_src_genbits_cg with function sample(bit genbits_fips);
+    option.per_instance  = 1;
+    option.name          = "csrng_entropy_src_genbits_cg";
+    // Coverpoint for indicating FIPS/CC compliant bits on entropy source genbits.
+    es_fips_cp: coverpoint genbits_fips {
       bins fips_compliant = { 1'b1 };
       bins fips_non_compliant = { 1'b0 };
     }
@@ -447,7 +457,7 @@ interface csrng_cov_if (
     option.per_instance  = 1;
     option.name          = "csrng_fips_transition_cg";
     // Coverpoint for all of the possible transitions of flag0.
-    fips_transition_cp: coverpoint fips_transition{
+    fips_transition_cp: coverpoint fips_transition {
       bins low_to_low = { 2'b00 };
       bins low_to_high = { 2'b01 };
       bins high_to_low = { 2'b10 };
@@ -463,7 +473,8 @@ interface csrng_cov_if (
   `DV_FCOV_INSTANTIATE_CG(csrng_err_code_test_cg, en_full_cov)
   `DV_FCOV_INSTANTIATE_CG(csrng_recov_alert_sts_cg, en_full_cov)
   `DV_FCOV_INSTANTIATE_CG(csrng_otp_en_sw_app_read_cg, en_full_cov)
-  `DV_FCOV_INSTANTIATE_CG(csrng_genbits_cg, en_full_cov)
+  `DV_FCOV_INSTANTIATE_CG(csrng_cmd_genbits_cg, en_full_cov)
+  `DV_FCOV_INSTANTIATE_CG(csrng_entropy_src_genbits_cg, en_full_cov)
   `DV_FCOV_INSTANTIATE_CG(csrng_flag0_transition_cg, en_full_cov)
 
   // Sample functions needed for xcelium
@@ -522,8 +533,12 @@ interface csrng_cov_if (
     );
   endfunction
 
-  function automatic void cg_csrng_genbits_sample(bit genbits_fips, bit genbits_valid);
-    csrng_genbits_cg_inst.sample(genbits_fips, genbits_valid);
+  function automatic void csrng_cmd_genbits_sample(bit genbits_fips, bit genbits_valid);
+    csrng_cmd_genbits_cg_inst.sample(genbits_fips, genbits_valid);
+  endfunction
+
+  function automatic void csrng_es_genbits_sample(bit genbits_fips);
+    csrng_entropy_src_genbits_cg_inst.sample(genbits_fips);
   endfunction
 
   function automatic void cg_csrng_flag0_transition_sample(mubi4_t flag0_previous,

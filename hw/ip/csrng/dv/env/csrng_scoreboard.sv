@@ -277,7 +277,7 @@ class csrng_scoreboard extends cip_base_scoreboard #(
       "genbits_vld": begin
         do_read_check = 1'b0;
         if (data_phase_read) begin
-          cov_vif.cg_csrng_genbits_sample(
+          cov_vif.csrng_cmd_genbits_sample(
             .genbits_valid(item.a_data[0]),
             .genbits_fips(item.a_data[1]));
         end
@@ -540,6 +540,7 @@ class csrng_scoreboard extends cip_base_scoreboard #(
           `uvm_fatal(`gfn, $sformatf("Invalid APP: %0d", cmd_arb_idx))
         end
       endcase
+      cov_vif.csrng_es_genbits_sample(es_item.d_data[CSRNG_BUS_WIDTH]);
      end
   endtask
 
@@ -582,7 +583,7 @@ class csrng_scoreboard extends cip_base_scoreboard #(
             // Check if the FIPS compliance bit is set correctly.
             `DV_CHECK_EQ_FATAL(cs_item[app].fips_q[i], cfg.compliance[app])
             // genbits_valid is always true for the HW applications.
-            cov_vif.cg_csrng_genbits_sample(
+            cov_vif.csrng_cmd_genbits_sample(
                 .genbits_valid(1'b1),
                 .genbits_fips(cs_item[app].fips_q[i]));
           end
