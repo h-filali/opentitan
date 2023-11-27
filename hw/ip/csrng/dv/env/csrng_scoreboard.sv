@@ -219,9 +219,12 @@ class csrng_scoreboard extends cip_base_scoreboard #(
                               UVM_HIGH)
                     return;
                   end
-                  es_item[SW_APP] = es_item_q[SW_APP].pop_front;
-                  es_data[SW_APP] = es_item[SW_APP].d_data[CSRNG_BUS_WIDTH-1:0];
-                  fips[SW_APP]    = es_item[SW_APP].d_data[CSRNG_BUS_WIDTH];
+                  es_item[SW_APP]        = es_item_q[SW_APP].pop_front;
+                  es_data[SW_APP]        = es_item[SW_APP].d_data[CSRNG_BUS_WIDTH-1:0];
+                  fips[SW_APP]           = es_item[SW_APP].d_data[CSRNG_BUS_WIDTH];
+                  flag0_previous[SW_APP] = MuBi4False;
+                end else begin
+                  flag0_previous[SW_APP] = MuBi4True;
                 end
                 ctr_drbg_instantiate(SW_APP, es_data[SW_APP], cs_data[SW_APP], fips[SW_APP]);
               end
@@ -238,6 +241,15 @@ class csrng_scoreboard extends cip_base_scoreboard #(
                   es_item[SW_APP] = es_item_q[SW_APP].pop_front;
                   es_data[SW_APP] = es_item[SW_APP].d_data[CSRNG_BUS_WIDTH-1:0];
                   fips[SW_APP]    = es_item[SW_APP].d_data[CSRNG_BUS_WIDTH];
+                  cov_vif.cg_csrng_flag0_transition_sample(
+                      .flag0_previous(flag0_previous[SW_APP]),
+                      .flag0_current(MuBi4False));
+                  flag0_previous[SW_APP] = MuBi4False;
+                end else begin
+                  cov_vif.cg_csrng_flag0_transition_sample(
+                      .flag0_previous(flag0_previous[SW_APP]),
+                      .flag0_current(MuBi4True));
+                  flag0_previous[SW_APP] = MuBi4True;
                 end
                 ctr_drbg_reseed(SW_APP, es_data[SW_APP], cs_data[SW_APP], fips[SW_APP]);
               end
@@ -557,6 +569,9 @@ class csrng_scoreboard extends cip_base_scoreboard #(
             es_item[app] = es_item_q[app].pop_front();
             es_data[app] = es_item[app].d_data[CSRNG_BUS_WIDTH-1:0];
             fips[app]    = es_item[app].d_data[CSRNG_BUS_WIDTH];
+            flag0_previous[app] = MuBi4False;
+          end else begin
+            flag0_previous[app] = MuBi4True;
           end
           ctr_drbg_instantiate(app, es_data[app], cs_data[app], fips[app]);
         end
@@ -586,6 +601,15 @@ class csrng_scoreboard extends cip_base_scoreboard #(
             es_item[app] = es_item_q[app].pop_front();
             es_data[app] = es_item[app].d_data[CSRNG_BUS_WIDTH-1:0];
             fips[app]    = es_item[app].d_data[CSRNG_BUS_WIDTH];
+            cov_vif.cg_csrng_flag0_transition_sample(
+                .flag0_previous(flag0_previous[app]),
+                .flag0_current(MuBi4False));
+            flag0_previous[app] = MuBi4False;
+          end else begin
+            cov_vif.cg_csrng_flag0_transition_sample(
+                .flag0_previous(flag0_previous[app]),
+                .flag0_current(MuBi4True));
+            flag0_previous[app] = MuBi4True;
           end
           ctr_drbg_reseed(app, es_data[app], cs_data[app], fips[app]);
         end

@@ -440,6 +440,21 @@ interface csrng_cov_if (
     }
   endgroup
 
+  // Covergroup that samples all possible transitions of flag0 that are expected to lead to
+  // a transition of the fips compliance bit at the application interface output.
+  // Only the flag0 of instantiate and reseed commands should be considered.
+  covergroup csrng_flag0_transition_cg with function sample(bit [1:0] fips_transition);
+    option.per_instance  = 1;
+    option.name          = "csrng_fips_transition_cg";
+    // Coverpoint for all of the possible transitions of flag0.
+    fips_transition_cp: coverpoint fips_transition{
+      bins low_to_low = { 2'b00 };
+      bins low_to_high = { 2'b01 };
+      bins high_to_low = { 2'b10 };
+      bins high_to_high = { 2'b11 };
+    }
+  endgroup
+
   `DV_FCOV_INSTANTIATE_CG(csrng_sfifo_cg, en_full_cov)
   `DV_FCOV_INSTANTIATE_CG(csrng_cfg_cg, en_full_cov)
   `DV_FCOV_INSTANTIATE_CG(csrng_cmds_cg, en_full_cov)
@@ -449,6 +464,7 @@ interface csrng_cov_if (
   `DV_FCOV_INSTANTIATE_CG(csrng_recov_alert_sts_cg, en_full_cov)
   `DV_FCOV_INSTANTIATE_CG(csrng_otp_en_sw_app_read_cg, en_full_cov)
   `DV_FCOV_INSTANTIATE_CG(csrng_genbits_cg, en_full_cov)
+  `DV_FCOV_INSTANTIATE_CG(csrng_flag0_transition_cg, en_full_cov)
 
   // Sample functions needed for xcelium
   function automatic void cg_cfg_sample(csrng_env_cfg cfg);
@@ -508,6 +524,13 @@ interface csrng_cov_if (
 
   function automatic void cg_csrng_genbits_sample(bit genbits_fips, bit genbits_valid);
     csrng_genbits_cg_inst.sample(genbits_fips, genbits_valid);
+  endfunction
+
+  function automatic void cg_csrng_flag0_transition_sample(mubi4_t flag0_previous,
+                                                           mubi4_t flag0_current);
+    bit previous = (flag0_previous == MuBi4True) ? 1'b1 : 1'b0;
+    bit current = (flag0_current == MuBi4True) ? 1'b1 : 1'b0;
+    csrng_flag0_transition_cg_inst.sample({previous, current});
   endfunction
 
 endinterface : csrng_cov_if
