@@ -243,12 +243,14 @@ class csrng_scoreboard extends cip_base_scoreboard #(
                   fips[SW_APP]    = es_item[SW_APP].d_data[CSRNG_BUS_WIDTH];
                   cov_vif.cg_csrng_flag0_transition_sample(
                       .flag0_previous(flag0_previous[SW_APP]),
-                      .flag0_current(MuBi4False));
+                      .flag0_current(MuBi4False),
+                      .app(SW_APP));
                   flag0_previous[SW_APP] = MuBi4False;
                 end else begin
                   cov_vif.cg_csrng_flag0_transition_sample(
                       .flag0_previous(flag0_previous[SW_APP]),
-                      .flag0_current(MuBi4True));
+                      .flag0_current(MuBi4True),
+                      .app(SW_APP));
                   flag0_previous[SW_APP] = MuBi4True;
                 end
                 ctr_drbg_reseed(SW_APP, es_data[SW_APP], cs_data[SW_APP], fips[SW_APP]);
@@ -279,7 +281,8 @@ class csrng_scoreboard extends cip_base_scoreboard #(
         if (data_phase_read) begin
           cov_vif.csrng_cmd_genbits_sample(
             .genbits_valid(item.a_data[0]),
-            .genbits_fips(item.a_data[1]));
+            .genbits_fips(item.a_data[1]),
+            .app(SW_APP));
         end
       end
       "genbits": begin
@@ -540,7 +543,7 @@ class csrng_scoreboard extends cip_base_scoreboard #(
           `uvm_fatal(`gfn, $sformatf("Invalid APP: %0d", cmd_arb_idx))
         end
       endcase
-      cov_vif.csrng_es_genbits_sample(es_item.d_data[CSRNG_BUS_WIDTH]);
+      cov_vif.csrng_es_genbits_sample(es_item.d_data[CSRNG_BUS_WIDTH], cmd_arb_idx);
      end
   endtask
 
@@ -585,7 +588,8 @@ class csrng_scoreboard extends cip_base_scoreboard #(
             // genbits_valid is always true for the HW applications.
             cov_vif.csrng_cmd_genbits_sample(
                 .genbits_valid(1'b1),
-                .genbits_fips(cs_item[app].fips_q[i]));
+                .genbits_fips(cs_item[app].fips_q[i]),
+                .app(app));
           end
           // Deletes the predicted genbits before the next comparison.
           prd_genbits_q[app].delete();
@@ -608,12 +612,14 @@ class csrng_scoreboard extends cip_base_scoreboard #(
             fips[app]    = es_item[app].d_data[CSRNG_BUS_WIDTH];
             cov_vif.cg_csrng_flag0_transition_sample(
                 .flag0_previous(flag0_previous[app]),
-                .flag0_current(MuBi4False));
+                .flag0_current(MuBi4False),
+                .app(app));
             flag0_previous[app] = MuBi4False;
           end else begin
             cov_vif.cg_csrng_flag0_transition_sample(
                 .flag0_previous(flag0_previous[app]),
-                .flag0_current(MuBi4True));
+                .flag0_current(MuBi4True),
+                .app(app));
             flag0_previous[app] = MuBi4True;
           end
           ctr_drbg_reseed(app, es_data[app], cs_data[app], fips[app]);

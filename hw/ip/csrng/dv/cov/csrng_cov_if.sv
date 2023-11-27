@@ -430,7 +430,9 @@ interface csrng_cov_if (
                                                     iff(read_genbits_reg);
   endgroup
 
-  covergroup csrng_cmd_genbits_cg with function sample(bit genbits_fips, bit genbits_valid);
+  covergroup csrng_cmd_genbits_cg with function sample(bit genbits_fips,
+                                                       bit genbits_valid,
+                                                       uint app);
     option.per_instance  = 1;
     option.name          = "csrng_cmd_genbits_cg";
     // Coverpoint for indicating FIPS/CC compliant bits on genbits command response.
@@ -438,9 +440,17 @@ interface csrng_cov_if (
       bins fips_compliant = { 1'b1 };
       bins fips_non_compliant = { 1'b0 };
     }
+
+    app_cp: coverpoint app {
+      bins software = { SW_APP };
+      bins hardware = { [0:SW_APP-1] };
+      ignore_bins invalid_app = { [SW_APP+1:$] };
+    }
+
+    fips_app_cross: cross genbits_fips_cp, app_cp;
   endgroup
 
-  covergroup csrng_entropy_src_genbits_cg with function sample(bit genbits_fips);
+  covergroup csrng_entropy_src_genbits_cg with function sample(bit genbits_fips, uint app);
     option.per_instance  = 1;
     option.name          = "csrng_entropy_src_genbits_cg";
     // Coverpoint for indicating FIPS/CC compliant bits on entropy source genbits.
@@ -448,12 +458,20 @@ interface csrng_cov_if (
       bins fips_compliant = { 1'b1 };
       bins fips_non_compliant = { 1'b0 };
     }
+
+    app_cp: coverpoint app {
+      bins software = { SW_APP };
+      bins hardware = { [0:SW_APP-1] };
+      ignore_bins invalid_app = { [SW_APP+1:$] };
+    }
+
+    fips_app_cross: cross es_fips_cp, app_cp;
   endgroup
 
   // Covergroup that samples all possible transitions of flag0 that are expected to lead to
   // a transition of the fips compliance bit at the application interface output.
   // Only the flag0 of instantiate and reseed commands should be considered.
-  covergroup csrng_flag0_transition_cg with function sample(bit [1:0] fips_transition);
+  covergroup csrng_flag0_transition_cg with function sample(bit [1:0] fips_transition, uint app);
     option.per_instance  = 1;
     option.name          = "csrng_fips_transition_cg";
     // Coverpoint for all of the possible transitions of flag0.
@@ -463,6 +481,14 @@ interface csrng_cov_if (
       bins high_to_low = { 2'b10 };
       bins high_to_high = { 2'b11 };
     }
+
+    app_cp: coverpoint app {
+      bins software = { SW_APP };
+      bins hardware = { [0:SW_APP-1] };
+      ignore_bins invalid_app = { [SW_APP+1:$] };
+    }
+
+    fips_app_cross: cross fips_transition_cp, app_cp;
   endgroup
 
   `DV_FCOV_INSTANTIATE_CG(csrng_sfifo_cg, en_full_cov)
@@ -533,19 +559,23 @@ interface csrng_cov_if (
     );
   endfunction
 
-  function automatic void csrng_cmd_genbits_sample(bit genbits_fips, bit genbits_valid);
-    csrng_cmd_genbits_cg_inst.sample(genbits_fips, genbits_valid);
+  function automatic void csrng_cmd_genbits_sample(bit genbits_fips,
+                                                   bit genbits_valid,
+                                                   uint app);
+    csrng_cmd_genbits_cg_inst.sample(genbits_fips, genbits_valid, app);
   endfunction
 
-  function automatic void csrng_es_genbits_sample(bit genbits_fips);
-    csrng_entropy_src_genbits_cg_inst.sample(genbits_fips);
+  function automatic void csrng_es_genbits_sample(bit genbits_fips,
+                                                  uint app);
+    csrng_entropy_src_genbits_cg_inst.sample(genbits_fips, app);
   endfunction
 
   function automatic void cg_csrng_flag0_transition_sample(mubi4_t flag0_previous,
-                                                           mubi4_t flag0_current);
+                                                           mubi4_t flag0_current,
+                                                           uint app);
     bit previous = (flag0_previous == MuBi4True) ? 1'b1 : 1'b0;
     bit current = (flag0_current == MuBi4True) ? 1'b1 : 1'b0;
-    csrng_flag0_transition_cg_inst.sample({previous, current});
+    csrng_flag0_transition_cg_inst.sample({previous, current}, app);
   endfunction
 
 endinterface : csrng_cov_if
