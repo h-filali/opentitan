@@ -119,10 +119,9 @@ module entropy_src_main_sm
         boot_phase_done_o = 1'b1;
         if (!enable_i) begin
           state_d = Idle;
-        end
         // Even when stalled we keep monitoring for alerts and maintaining  alert statistics.
         // However, we don't signal alerts or clear HT stats in FW_OV mode.
-        if(!fw_ov_ent_insert_i && ht_done_pulse_i) begin
+        end else if(!fw_ov_ent_insert_i && ht_done_pulse_i) begin
           if (alert_thresh_fail_i) begin
             state_d = AlertState;
           end else if (!ht_fail_pulse_i) begin
