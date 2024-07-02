@@ -15,6 +15,7 @@ class csrng_alert_test extends csrng_base_test;
     cfg.otp_en_cs_sw_app_read_inval_pct = 0;
     cfg.sw_app_enable_pct               = 100;
     cfg.use_invalid_mubi                = 1;
+    cfg.alert_max_delay                 = 100;
 
     `DV_CHECK_RANDOMIZE_FATAL(cfg)
 

@@ -219,6 +219,7 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
           if (!cfg.en_scb) continue;
           if (item.alert_esc_type == AlertEscSigTrans && !item.ping_timeout &&
               item.alert_handshake_sta inside {AlertReceived, AlertAckComplete}) begin
+            `uvm_info(`gfn, $sformatf("BOUTTA PROCESS AN ALERT"), UVM_LOW)
             process_alert(alert_name, item);
           // IP level alert protocol does not drive any sig_int_err or ping response.
           // However, `lpg_en` or `alert_init` will trigger signal integrity error, user can
@@ -251,7 +252,7 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
     end
 
     `uvm_info(`gfn, $sformatf("alert %0s detected, alert_status is %s", alert_name,
-                              item.alert_handshake_sta), UVM_DEBUG)
+                              item.alert_handshake_sta), UVM_LOW)
     if (item.alert_handshake_sta == AlertReceived) begin
       under_alert_handshake[alert_name] = 1;
       on_alert(alert_name, item);
@@ -336,11 +337,11 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
                       alert_name,
                       under_alert_handshake[alert_name],
                       expected_alert[alert_name].expected
-                      ), UVM_MEDIUM)
+                      ), UVM_LOW)
           end else begin
             `uvm_info(`gfn, $sformatf(
                       "alert %0s is expected to trigger, fatal=%0d, delay %0d", alert_name,
-                       exp_alert.is_fatal, exp_alert.max_delay), UVM_MEDIUM)
+                       exp_alert.is_fatal, exp_alert.max_delay), UVM_LOW)
             expected_alert[alert_name] = '{1, exp_alert.is_fatal, exp_alert.max_delay};
           end
         end

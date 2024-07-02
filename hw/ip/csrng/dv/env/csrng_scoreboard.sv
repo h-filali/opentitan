@@ -259,6 +259,10 @@ class csrng_scoreboard extends cip_base_scoreboard #(
                 if (!GEN) begin
                   // Expect the next acknowledgement to return an error.
                   cmd_sts[SW_APP] = CMD_STS_INVALID_ACMD;
+                  `DV_CHECK_FATAL(ral.recov_alert_sts.cmd_stage_invalid_acmd_alert.predict(1'b1));
+                  set_exp_alert(.alert_name("recov_alert"), .is_fatal(0), .max_delay(cfg.alert_max_delay));
+                  // The DUT should either set the alert, or crash the sim.
+                  // If we succeed, sample this alert_threshold as covered successfully.
                 end
               end
             endcase
@@ -441,6 +445,8 @@ class csrng_scoreboard extends cip_base_scoreboard #(
     // If the instance was not instantiated then the next acknowledge should return an error.
     if (!cfg.status[app]) begin
       cmd_sts[app] = CMD_STS_INVALID_CMD_SEQ;
+      `DV_CHECK_FATAL(ral.recov_alert_sts.cmd_stage_invalid_cmd_seq_alert.predict(1'b1));
+      set_exp_alert(.alert_name("recov_alert"), .is_fatal(0), .max_delay(cfg.alert_max_delay));
     end
     for (int i = 0; i < (CSRNG_BUS_WIDTH/BLOCK_LEN); i++) begin
       if (CTR_LEN < BLOCK_LEN) begin
@@ -476,7 +482,10 @@ class csrng_scoreboard extends cip_base_scoreboard #(
     `uvm_info(`gfn, $sformatf("Instantiate of app %0d", app), UVM_MEDIUM)
     // If the instance was already instantiated then the next acknowledge should return an error.
     if (cfg.status[app]) begin
+      `uvm_info(`gfn, $sformatf("EXPECTING INVALID CMD SEQ ALERT"), UVM_LOW)
       cmd_sts[app] = CMD_STS_INVALID_CMD_SEQ;
+      `DV_CHECK_FATAL(ral.recov_alert_sts.cmd_stage_invalid_cmd_seq_alert.predict(1'b1));
+      set_exp_alert(.alert_name("recov_alert"), .is_fatal(0), .max_delay(cfg.alert_max_delay));
     end
     seed_material  = entropy_input ^ additional_input;
     cfg.key[app] = 'h0;
@@ -530,6 +539,8 @@ class csrng_scoreboard extends cip_base_scoreboard #(
     `uvm_info(`gfn, $sformatf("Generate of app %0d", app), UVM_MEDIUM)
     if (cfg.reseed_counter[app] == `gmv(ral.reseed_interval)) begin
       cmd_sts[app] = CMD_STS_RESEED_CNT_EXCEEDED;
+      `DV_CHECK_FATAL(ral.recov_alert_sts.cmd_stage_reseed_cnt_alert.predict(1'b1));
+      set_exp_alert(.alert_name("recov_alert"), .is_fatal(0), .max_delay(cfg.alert_max_delay));
     end
     if (additional_input) begin
       ctr_drbg_update(app, additional_input);
@@ -681,6 +692,8 @@ class csrng_scoreboard extends cip_base_scoreboard #(
         default: begin
           // Expect the next acknowledgement to return an error.
           cmd_sts[app] = CMD_STS_INVALID_ACMD;
+          `DV_CHECK_FATAL(ral.recov_alert_sts.cmd_stage_invalid_acmd_alert.predict(1'b1));
+          set_exp_alert(.alert_name("recov_alert"), .is_fatal(0), .max_delay(cfg.alert_max_delay));
         end
       endcase
     end

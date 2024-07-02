@@ -136,12 +136,36 @@ class csrng_intr_vseq extends csrng_base_vseq;
 
   task test_cs_sw_cmd_sts();
     // TODO(#22869): Instead of forcing ack_sts, actually generate the different error conditions.
-    // Force error on SW instance
-    force_ack_and_ack_sts(2, CMD_STS_INVALID_CMD_SEQ);
-    // Wait for SW_CMD_STS getting set
-    csr_spinwait(.ptr(ral.sw_cmd_sts.cmd_sts), .exp_data(CMD_STS_INVALID_CMD_SEQ));
-    cov_vif.cg_err_code_sample(.err_code(32'b0));
-    release_ack_and_ack_sts(2);
+    // // Force error on SW instance
+    // force_ack_and_ack_sts(2, CMD_STS_INVALID_CMD_SEQ);
+    // // Wait for SW_CMD_STS getting set
+    // csr_spinwait(.ptr(ral.sw_cmd_sts.cmd_sts), .exp_data(CMD_STS_INVALID_CMD_SEQ));
+    // cov_vif.cg_err_code_sample(.err_code(32'b0));
+    // release_ack_and_ack_sts(2);
+    `uvm_info(`gfn, $sformatf("ENABLING SCOREBOARD"), UVM_LOW)
+    cfg.en_scb = 1;
+
+    // Write CSRNG Cmd_Req - Instantiate Command
+    cs_item.acmd  = csrng_pkg::INS;
+    cs_item.clen  = 'h0;
+    cs_item.flags = MuBi4False;
+    cs_item.glen  = 'h0;
+    `uvm_info(`gfn, $sformatf("%s", cs_item.convert2string()), UVM_LOW)
+    send_cmd_req(SW_APP, cs_item);
+
+    // Write CSRNG Cmd_Req - Instantiate Command
+    cs_item.acmd  = csrng_pkg::INS;
+    cs_item.clen  = 'h0;
+    cs_item.flags = MuBi4False;
+    cs_item.glen  = 'h0;
+    `uvm_info(`gfn, $sformatf("%s", cs_item.convert2string()), UVM_LOW)
+    send_cmd_req(SW_APP, cs_item);
+
+    cfg.en_scb = 0;
+
+
+
+
   endtask
 
   task test_cs_hw_inst_exc();

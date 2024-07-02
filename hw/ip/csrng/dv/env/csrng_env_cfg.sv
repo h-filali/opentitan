@@ -34,7 +34,7 @@ class csrng_env_cfg extends cip_base_env_cfg #(.RAL_T(csrng_reg_block));
        min_disable_csrng_before_entropy_src_clks, max_disable_csrng_before_entropy_src_clks,
        min_disable_clks, max_disable_clks,
        min_enable_entropy_src_before_csrng_clks, max_enable_entropy_src_before_csrng_clks,
-       min_enable_csrng_before_edn_clks, max_enable_csrng_before_edn_clks;
+       min_enable_csrng_before_edn_clks, max_enable_csrng_before_edn_clks, alert_max_delay;
 
   bit    use_invalid_mubi;
 
