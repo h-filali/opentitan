@@ -954,6 +954,7 @@ module entropy_src_core import entropy_src_pkg::*; #(
          err_code_test_bit[29];
   assign fifo_status_err_sum =
          sfifo_esrng_err[0] ||
+         sfifo_distr_err[0] ||
          sfifo_observe_err[0] ||
          sfifo_esfinal_err[0] ||
          err_code_test_bit[30];
