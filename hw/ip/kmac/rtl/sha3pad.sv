@@ -289,9 +289,15 @@ module sha3pad
   // Next logic and output logic ==============================================
   // SEC_CM: ABSORBED.CTRL.MUBI
   prim_mubi_pkg::mubi4_t absorbed_d;
+  logic processing_blocksize_d, processing_blocksize_q;
   always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) absorbed_o <= prim_mubi_pkg::MuBi4False;
-    else         absorbed_o <= absorbed_d;
+    if (!rst_ni) begin
+      absorbed_o <= prim_mubi_pkg::MuBi4False;
+      processing_blocksize_q <= 1'b0;
+    end else begin
+      absorbed_o <= absorbed_d;
+      processing_blocksize_q <= processing_blocksize_d;
+    end
   end
 
   always_comb begin
@@ -312,6 +318,8 @@ module sha3pad
     absorbed_d = prim_mubi_pkg::MuBi4False;
 
     sparse_fsm_error_o = 1'b 0;
+
+    processing_blocksize_d = processing_blocksize_q;
 
     unique case (st)
 
@@ -373,6 +381,7 @@ module sha3pad
       // set, it moves to Pad state.
       StMessage: begin
         sel_mux = MuxFifo;
+        processing_blocksize_d = 1'b0;
 
         if (msg_valid_i && msg_partial) begin
           st_d = StMessage;
@@ -385,7 +394,8 @@ module sha3pad
           keccak_run_o = 1'b 1;
           clr_sentmsg = 1'b 1;
           hold_msg = 1'b 1;
-        end else if (process_latched || process_i) begin
+          processing_blocksize_d = 1'b1;
+        end else if ((process_latched && !processing_blocksize_q)  || process_i) begin
           st_d = StPad;
 
           // Not asserting the msg_ready_o
@@ -803,12 +813,6 @@ module sha3pad
       done_valid <= 1'b 0;
     end
   end
-
-  // Message can be fed in between start_i and process_i.
-  `ASSUME(MessageCondition_M, msg_valid_i && msg_ready_o |-> process_valid && !process_i)
-
-  // Message ready should be asserted only in between start_i and process_i
-  `ASSERT(MsgReadyCondition_A, msg_ready_o |-> process_valid && !process_i)
 
   `ASSUME(ProcessCondition_M, process_i |-> process_valid)
   `ASSUME(StartCondition_M, start_i |-> start_valid)
