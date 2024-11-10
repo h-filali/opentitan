@@ -61,6 +61,62 @@ otbn_library(
     ],
 )
 
+otbn_binary(
+    name = "ml_dsa_decompose",
+    srcs = [
+        "ml_dsa_decompose.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_intt",
+    srcs = [
+        "ml_dsa_intt.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_ntt",
+    srcs = [
+        "ml_dsa_ntt.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_reject",
+    srcs = [
+        "ml_dsa_reject.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_vec_add",
+    srcs = [
+        "ml_dsa_vec_add.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_vec_sub",
+    srcs = [
+        "ml_dsa_vec_sub.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_vec_mul",
+    srcs = [
+        "ml_dsa_vec_mul.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_vec_mac",
+    srcs = [
+        "ml_dsa_vec_mac.s",
+    ],
+)
+
 otbn_library(
     name = "modexp",
     srcs = [
