@@ -2456,6 +2456,39 @@ opentitan_test(
 )
 
 opentitan_test(
+    name = "ml_dsa",
+    srcs = ["ml_dsa.c"],
+    exec_env = dicts.add(
+        EARLGREY_TEST_ENVS,
+        EARLGREY_SILICON_OWNER_ROM_EXT_ENVS,
+        {
+            "//hw/top_earlgrey:silicon_creator": None,
+        },
+    ),
+    verilator = verilator_params(timeout = "long"),
+    deps = [
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/dif:otbn",
+        "//sw/device/lib/runtime:ibex",
+        "//sw/device/lib/runtime:irq",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:entropy_testutils",
+        "//sw/device/lib/testing:otbn_testutils",
+        "//sw/device/lib/testing:profile",
+        "//sw/device/lib/testing:rv_plic_testutils",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/otbn/crypto:ml_dsa_decompose",
+        "//sw/otbn/crypto:ml_dsa_intt",
+        "//sw/otbn/crypto:ml_dsa_ntt",
+        "//sw/otbn/crypto:ml_dsa_reject",
+        "//sw/otbn/crypto:ml_dsa_vec_add",
+        "//sw/otbn/crypto:ml_dsa_vec_sub",
+        "//sw/otbn/crypto:ml_dsa_vec_mul",
+        "//sw/otbn/crypto:ml_dsa_vec_mac",
+    ],
+)
+
+opentitan_test(
     name = "otbn_ecdsa_op_irq_test",
     srcs = ["otbn_ecdsa_op_irq_test.c"],
     exec_env = dicts.add(
