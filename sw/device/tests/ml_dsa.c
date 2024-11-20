@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "sw/device/lib/dif/dif_otbn.h"
+#include "sw/device/lib/crypto/drivers/otbn.h"
 #include "sw/device/lib/runtime/ibex.h"
 #include "sw/device/lib/runtime/irq.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/entropy_testutils.h"
-#include "sw/device/lib/testing/otbn_testutils.h"
 #include "sw/device/lib/testing/profile.h"
 #include "sw/device/lib/testing/rv_plic_testutils.h"
 #include "sw/device/lib/testing/test_framework/check.h"
@@ -17,6 +17,9 @@
 
 // Enum for constants and selecting sub-function
 enum {
+  kMlDsaDregSize = 1,
+  kMlDsaWregSize = 8,
+  kMlDsaVecSize = 256,
   kMlDsaReject,
   kMlDsaDecompose,
   kMlDsaVecAdd,
@@ -138,7 +141,7 @@ static volatile dif_rv_plic_irq_id_t irq_id;
 static volatile dif_otbn_irq_t irq;
 
 
-static const uint32_t kMlDsaInpVecA[256] = {
+static const uint32_t kMlDsaInpVecA[kMlDsaVecSize] = {
     0x0060FC78, 0x002D0230, 0x002A2114, 0x0025C490,
     0x0025D781, 0x0038F5B2, 0x00475320, 0x004907AA,
     0x00080853, 0x003D7E45, 0x0025C590, 0x0072939A,
@@ -204,7 +207,7 @@ static const uint32_t kMlDsaInpVecA[256] = {
     0x0033FC89, 0x002D6E48, 0x0059DD87, 0x002CC657,
     0x0053C105, 0x002D7B43, 0x00692453, 0x0051FD00,};
 
-static const uint32_t kMlDsaInpVecB[256] = {
+static const uint32_t kMlDsaInpVecB[kMlDsaVecSize] = {
     0x0029EE21, 0x007326BF, 0x0051D5D5, 0x00237D9B,
     0x00198397, 0x001A6000, 0x000E590E, 0x007A1FA6,
     0x001E80E8, 0x006CF1F2, 0x000E7950, 0x00722B01,
@@ -352,7 +355,7 @@ static void otbn_init_irq(void) {
 }
 
 static void ml_dsa_reject(void) {
-  static const uint32_t kMlDsaRejectPassing[256] = {
+  static const uint32_t kMlDsaRejectPassing[kMlDsaVecSize] = {
       0x00016883, 0x00018972, 0x000341C7, 0x0001E4F4,
       0x00027CE2, 0x0000F6B0, 0x00008C58, 0x00033409,
       0x000003E8, 0x0002881E, 0x0002CDA4, 0x0001DBAB,
@@ -418,7 +421,7 @@ static void ml_dsa_reject(void) {
       0x00039ACE, 0x0002E341, 0x0002D8BC, 0x00011F44,
       0x0000F41E, 0x0000C811, 0x0000D64C, 0x0003DE2C,};
 
-  static const uint32_t kMlDsaRejectFailing[256] = {
+  static const uint32_t kMlDsaRejectFailing[kMlDsaVecSize] = {
       0x0078A0FF, 0x004C2B27, 0x0031DDB6, 0x006B6139,
       0x000D4B13, 0x007790D1, 0x0010DCD4, 0x000F5DD2,
       0x005FF7E2, 0x00245E0B, 0x007BF1C8, 0x000225AC,
@@ -486,60 +489,68 @@ static void ml_dsa_reject(void) {
 
   bool fail = false;
   uint32_t response = 0;
+  uint32_t response_exp;
 
   // Initialize
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_testutils_load_app(&otbn, kOtbnAppMlDsaReject));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaReject));
 
   LOG_INFO("Rejection Loop sampling");
 
   // Write input arguments.
   if (fail) {
+    response_exp = 0;
     CHECK_STATUS_OK(
-        otbn_testutils_write_data(&otbn, /*len_bytes=*/4*256, kMlDsaRejectFailing, kOtbnAppMlDsaRejectInpVecZ));
+      otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaRejectFailing, kOtbnAppMlDsaRejectInpVecZ));
     CHECK_STATUS_OK(
-        otbn_testutils_write_data(&otbn, /*len_bytes=*/4*256, kMlDsaRejectFailing, kOtbnAppMlDsaRejectInpVecR0));
+      otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaRejectFailing, kOtbnAppMlDsaRejectInpVecR0));
 
   } else {
+    response_exp = 1;
     CHECK_STATUS_OK(
-        otbn_testutils_write_data(&otbn, /*len_bytes=*/4*256, kMlDsaRejectPassing, kOtbnAppMlDsaRejectInpVecZ));
+      otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaRejectPassing, kOtbnAppMlDsaRejectInpVecZ));
     CHECK_STATUS_OK(
-        otbn_testutils_write_data(&otbn, /*len_bytes=*/4*256, kMlDsaRejectPassing, kOtbnAppMlDsaRejectInpVecR0));
+      otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaRejectPassing, kOtbnAppMlDsaRejectInpVecR0));
   }
 
   // Call OTBN to perform operation, and wait for it to complete.
-  CHECK_STATUS_OK(otbn_testutils_execute(&otbn));
-  otbn_wait_for_done_irq(&otbn);
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/4, kOtbnAppMlDsaRejectResult, &response));
+      otbn_dmem_read(/*num_words=*/kMlDsaDregSize, kOtbnAppMlDsaRejectResult, &response));
 
-  CHECK(response == 1);
+  CHECK(response == response_exp);
 
 }
 
 static void ml_dsa_decompose(void) {
 
-  static const uint32_t decompose_r[8] = {
+  static const uint32_t decompose_r[kMlDsaWregSize] = {
       0x006141C6, 0x00000000, 0x00000000, 0x00000000,
       0x00000000, 0x00000000, 0x00000000, 0x00000000,};
 
-  static const uint32_t decompose_r0_exp[8] = {
+  static const uint32_t decompose_r0_exp[kMlDsaWregSize] = {
       0x000159C6, 0x00000000, 0x00000000, 0x00000000,
       0x00000000, 0x00000000, 0x00000000, 0x00000000,};
 
-  static const uint32_t decompose_r1_exp[8] = {
+  static const uint32_t decompose_r1_exp[kMlDsaWregSize] = {
       0x0000000C, 0x00000000, 0x00000000, 0x00000000,
       0x00000000, 0x00000000, 0x00000000, 0x00000000,};
 
-  uint32_t decompose_r0_act[8] = {
+  uint32_t decompose_r0_act[kMlDsaWregSize] = {
       0x00000000, 0x00000000, 0x00000000, 0x00000000,
       0x00000000, 0x00000000, 0x00000000, 0x00000000,};
 
-  uint32_t decompose_r1_act[8] = {
+  uint32_t decompose_r1_act[kMlDsaWregSize] = {
       0x00000000, 0x00000000, 0x00000000, 0x00000000,
       0x00000000, 0x00000000, 0x00000000, 0x00000000,};
 
@@ -547,31 +558,36 @@ static void ml_dsa_decompose(void) {
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_testutils_load_app(&otbn, kOtbnAppMlDsaDecompose));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaDecompose));
 
   LOG_INFO("Decompose");
 
   // Write input arguments.
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/32, decompose_r, kOtbnAppMlDsaDecomposeInpR));
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, decompose_r, kOtbnAppMlDsaDecomposeInpR));
 
   // Call OTBN to perform operation, and wait for it to complete.
-  CHECK_STATUS_OK(otbn_testutils_execute(&otbn));
-  otbn_wait_for_done_irq(&otbn);
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/32, kOtbnAppMlDsaDecomposeOupR0, decompose_r0_act));
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaDecomposeOupR0, decompose_r0_act));
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/32, kOtbnAppMlDsaDecomposeOupR1, decompose_r1_act));
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaDecomposeOupR1, decompose_r1_act));
 
-  CHECK_ARRAYS_EQ(decompose_r0_act, decompose_r0_exp, 8);
-  CHECK_ARRAYS_EQ(decompose_r1_act, decompose_r1_exp, 8);
+  CHECK_ARRAYS_EQ(decompose_r0_act, decompose_r0_exp, kMlDsaWregSize);
+  CHECK_ARRAYS_EQ(decompose_r1_act, decompose_r1_exp, kMlDsaWregSize);
 
 }
 
 static void ml_dsa_vec_add(void) {
-  static const uint32_t kOupVecExp[256] = {
+  static const uint32_t kOupVecExp[kMlDsaVecSize] = {
       0x000B0A98, 0x002048EE, 0x007BF6E9, 0x0049422B,
       0x003F5B18, 0x005355B2, 0x0055AC2E, 0x0043474F,
       0x0026893B, 0x002A9036, 0x00343EE0, 0x0064DE9A,
@@ -637,36 +653,41 @@ static void ml_dsa_vec_add(void) {
       0x0063ABF3, 0x0021135C, 0x00588028, 0x0047F276,
       0x004E954D, 0x0008F1C9, 0x006C49E9, 0x000B19C6,};
 
-  uint32_t kOupVecAct[256] = {0};
+  uint32_t kOupVecAct[kMlDsaVecSize] = {0};
 
   // Initialize
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_testutils_load_app(&otbn, kOtbnAppMlDsaVecAdd));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaVecAdd));
 
   LOG_INFO("Vector Addition");
 
   // Write input arguments.
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/4*256, kMlDsaInpVecA, kOtbnAppMlDsaVecAddA));
+    otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecA, kOtbnAppMlDsaVecAddA));
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/4*256, kMlDsaInpVecB, kOtbnAppMlDsaVecAddB));
+    otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecB, kOtbnAppMlDsaVecAddB));
 
   // Call OTBN to perform operation, and wait for it to complete.
-  CHECK_STATUS_OK(otbn_testutils_execute(&otbn));
-  otbn_wait_for_done_irq(&otbn);
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/4*256, kOtbnAppMlDsaVecAddA, kOupVecAct));
+      otbn_dmem_read(/*num_words=*/kMlDsaVecSize, kOtbnAppMlDsaVecAddA, kOupVecAct));
 
-  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, 256);
+  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, kMlDsaVecSize);
 
 }
 
 static void ml_dsa_vec_sub(void) {
-  static const uint32_t kOupVecExp[256] = {
+  static const uint32_t kOupVecExp[kMlDsaVecSize] = {
       0x00370E57, 0x0039BB72, 0x00582B40, 0x000246F5,
       0x000C53EA, 0x001E95B2, 0x0038FA12, 0x004EC805,
       0x0069676C, 0x00506C54, 0x00174C40, 0x00006899,
@@ -732,36 +753,41 @@ static void ml_dsa_vec_sub(void) {
       0x00044D1F, 0x0039C934, 0x005B3AE6, 0x00119A38,
       0x0058ECBD, 0x005204BD, 0x0065FEBD, 0x00190039,};
 
-  uint32_t kOupVecAct[256] = {0};
+  uint32_t kOupVecAct[kMlDsaVecSize] = {0};
 
   // Initialize
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_testutils_load_app(&otbn, kOtbnAppMlDsaVecSub));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaVecSub));
 
   LOG_INFO("Vector Subtraction");
 
   // Write input arguments.
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/256*4, kMlDsaInpVecA, kOtbnAppMlDsaVecSubA));
+    otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecA, kOtbnAppMlDsaVecSubA));
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/256*4, kMlDsaInpVecB, kOtbnAppMlDsaVecSubB));
+    otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecB, kOtbnAppMlDsaVecSubB));
 
   // Call OTBN to perform operation, and wait for it to complete.
-  CHECK_STATUS_OK(otbn_testutils_execute(&otbn));
-  otbn_wait_for_done_irq(&otbn);
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/256*4, kOtbnAppMlDsaVecSubA, kOupVecAct));
+      otbn_dmem_read(/*num_words=*/kMlDsaVecSize, kOtbnAppMlDsaVecSubA, kOupVecAct));
 
-  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, 256);
+  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, kMlDsaVecSize);
 
 }
 
 static void ml_dsa_vec_mul(void) {
-  static const uint32_t kOupVecExp[256] = {
+  static const uint32_t kOupVecExp[kMlDsaVecSize] = {
       0x00782E39, 0x00463A18, 0x000DD397, 0x006B77C3,
       0x0046B336, 0x001D0070, 0x001B8B09, 0x00602F71,
       0x0079A0B4, 0x0063AE5C, 0x0059A687, 0x005BC615,
@@ -827,69 +853,79 @@ static void ml_dsa_vec_mul(void) {
       0x0015F4E9, 0x0006C955, 0x0075D56E, 0x001B34E3,
       0x006BF067, 0x0024E5D6, 0x001D9143, 0x005A8145,};
 
-  uint32_t kOupVecAct[256] = {0};
+  uint32_t kOupVecAct[kMlDsaVecSize] = {0};
 
   // Initialize
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_testutils_load_app(&otbn, kOtbnAppMlDsaVecMul));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaVecMul));
 
   LOG_INFO("Vector Coefficient-Wise Multiplication");
 
   // Write input arguments.
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/256*4, kMlDsaInpVecA, kOtbnAppMlDsaVecMulA));
+    otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecA, kOtbnAppMlDsaVecMulA));
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/256*4, kMlDsaInpVecB, kOtbnAppMlDsaVecMulB));
+    otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecB, kOtbnAppMlDsaVecMulB));
 
   // Call OTBN to perform operation, and wait for it to complete.
-  CHECK_STATUS_OK(otbn_testutils_execute(&otbn));
-  otbn_wait_for_done_irq(&otbn);
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/256*4, kOtbnAppMlDsaVecMulA, kOupVecAct));
+      otbn_dmem_read(/*num_words=*/kMlDsaVecSize, kOtbnAppMlDsaVecMulA, kOupVecAct));
 
-  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, 256);
+  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, kMlDsaVecSize);
 
 }
 
 static void ml_dsa_vec_mac(void) {
-  static const uint32_t kOupVecExp[8] = {
+  static const uint32_t kOupVecExp[kMlDsaWregSize] = {
       0x0046F033, 0x00000000, 0x00000000, 0x00000000,
       0x00000000, 0x00000000, 0x00000000, 0x00000000,};
 
-  uint32_t kOupVecAct[8] = {0};
+  uint32_t kOupVecAct[kMlDsaWregSize] = {0};
 
   // Initialize
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_testutils_load_app(&otbn, kOtbnAppMlDsaVecMac));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaVecMac));
 
   LOG_INFO("Vector Multiply and Accumulate");
 
   // Write input arguments.
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/256*4, kMlDsaInpVecA, kOtbnAppMlDsaVecMacA));
+    otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecA, kOtbnAppMlDsaVecMacA));
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/256*4, kMlDsaInpVecB, kOtbnAppMlDsaVecMacB));
+    otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecB, kOtbnAppMlDsaVecMacB));
 
   // Call OTBN to perform operation, and wait for it to complete.
-  CHECK_STATUS_OK(otbn_testutils_execute(&otbn));
-  otbn_wait_for_done_irq(&otbn);
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/8*4, kOtbnAppMlDsaVecMacRes, kOupVecAct));
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaVecMacRes, kOupVecAct));
 
-  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, 8);
+  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, kMlDsaWregSize);
 
 }
 
 static void ml_dsa_ntt(void) {
-  static const uint32_t kOupVecExp[256] = {
+  static const uint32_t kOupVecExp[kMlDsaVecSize] = {
       0x00765D33, 0x00543658, 0x002D3D65, 0x0043DFED,
       0x00468B4A, 0x0079764B, 0x00292230, 0x002984B3,
       0x003CEE5C, 0x0035142F, 0x004564D5, 0x006D9E12,
@@ -955,34 +991,39 @@ static void ml_dsa_ntt(void) {
       0x002A9CA9, 0x00529AF9, 0x006B7C92, 0x00197770,
       0x0048110B, 0x003F74A7, 0x005C69CD, 0x0020C0D1,};
 
-  uint32_t kOupVecAct[256] = {0};
+  uint32_t kOupVecAct[kMlDsaVecSize] = {0};
 
   // Initialize
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_testutils_load_app(&otbn, kOtbnAppMlDsaNtt));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaNtt));
 
   LOG_INFO("Vector Number Theretic Transform");
 
   // Write input arguments.
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/256*4, kMlDsaInpVecA, kOtbnAppMlDsaNttW));
+        otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecA, kOtbnAppMlDsaNttW));
 
   // Call OTBN to perform operation, and wait for it to complete.
-  CHECK_STATUS_OK(otbn_testutils_execute(&otbn));
-  otbn_wait_for_done_irq(&otbn);
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/256*4, kOtbnAppMlDsaNttW, kOupVecAct));
+      otbn_dmem_read(/*num_words=*/kMlDsaVecSize, kOtbnAppMlDsaNttW, kOupVecAct));
 
-  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, 256);
+  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, kMlDsaVecSize);
 
 }
 
 static void ml_dsa_intt(void) {
-  static const uint32_t kOupVecExp[256] = {
+  static const uint32_t kOupVecExp[kMlDsaVecSize] = {
       0x0029EDD7, 0x004BA08A, 0x00777D16, 0x0013E86D,
       0x00372F90, 0x003FA613, 0x0037BC64, 0x002F2B97,
       0x000A4A93, 0x00676856, 0x00300062, 0x001E8D5B,
@@ -1048,36 +1089,41 @@ static void ml_dsa_intt(void) {
       0x0058A7BF, 0x0062F6E2, 0x0020D4CE, 0x0011600D,
       0x0002CC4F, 0x00339689, 0x00344903, 0x000B6D9D,};
 
-  uint32_t kOupVecAct[256] = {0};
+  uint32_t kOupVecAct[kMlDsaVecSize] = {0};
 
   // Initialize
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_testutils_load_app(&otbn, kOtbnAppMlDsaIntt));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaIntt));
 
   LOG_INFO("Vector Inverse Number Theretic Transform");
 
   // Write input arguments.
   CHECK_STATUS_OK(
-      otbn_testutils_write_data(&otbn, /*len_bytes=*/256*4, kMlDsaInpVecA, kOtbnAppMlDsaInttW));
+        otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaInpVecA, kOtbnAppMlDsaInttW));
 
   // Call OTBN to perform operation, and wait for it to complete.
-  CHECK_STATUS_OK(otbn_testutils_execute(&otbn));
-  otbn_wait_for_done_irq(&otbn);
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_testutils_read_data(&otbn, /*len_bytes=*/256*4, kOtbnAppMlDsaInttW, kOupVecAct));
+      otbn_dmem_read(/*num_words=*/kMlDsaVecSize, kOtbnAppMlDsaInttW, kOupVecAct));
 
-  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, 256);
+  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, kMlDsaVecSize);
 
 }
 
 bool test_main(void) {
   CHECK_STATUS_OK(entropy_testutils_auto_mode_init());
 
-  switch (kMlDsaIntt) {
+  switch (kMlDsaNtt) {
     case kMlDsaReject: ml_dsa_reject();
             break;
     case kMlDsaDecompose: ml_dsa_decompose();
