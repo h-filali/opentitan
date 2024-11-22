@@ -141,6 +141,28 @@ cc_library(
 )
 
 cc_library(
+    name = "ml_dsa_sca",
+    srcs = ["ml_dsa_sca.c"],
+    hdrs = ["ml_dsa_sca.h"],
+    deps = [
+        "//sw/device/lib/base:memory",
+        "//sw/device/lib/base:status",
+        "//sw/device/lib/crypto/drivers:otbn",
+        "//sw/device/lib/dif:otbn",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:keymgr_testutils",
+        "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_test_config",
+        "//sw/device/lib/testing/test_framework:ujson_ottf",
+        "//sw/device/lib/ujson",
+        "//sw/device/sca/lib:prng",
+        "//sw/device/tests/penetrationtests/firmware/lib:pentest_lib",
+        "//sw/device/tests/penetrationtests/json:ml_dsa_sca_commands",
+        "//sw/otbn/crypto:ml_dsa_ntt",
+    ],
+)
+
+cc_library(
     name = "otbn_sca",
     srcs = ["otbn_sca.c"],
     hdrs = ["otbn_sca.h"],

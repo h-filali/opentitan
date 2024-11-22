@@ -24,6 +24,7 @@ FIRMWARE_DEPS_FPGA = [
     "//sw/device/tests/penetrationtests/firmware/sca:hmac_sca",
     "//sw/device/tests/penetrationtests/firmware/sca:ibex_sca",
     "//sw/device/tests/penetrationtests/firmware/sca:kmac_sca",
+    "//sw/device/tests/penetrationtests/firmware/sca:ml_dsa_sca",
     "//sw/device/tests/penetrationtests/firmware/sca:otbn_sca",
     "//sw/device/tests/penetrationtests/firmware/sca:prng_sca",
     "//sw/device/tests/penetrationtests/firmware/sca:sha3_sca",

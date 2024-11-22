@@ -17,6 +17,7 @@ cc_library(
         ":ibex_fi_commands",
         ":kmac_sca_commands",
         ":lc_ctrl_fi_commands",
+        ":ml_dsa_sca_commands",
         ":otbn_fi_commands",
         ":otbn_sca_commands",
         ":otp_fi_commands",
@@ -88,6 +89,13 @@ cc_library(
     name = "lc_ctrl_fi_commands",
     srcs = ["lc_ctrl_fi_commands.c"],
     hdrs = ["lc_ctrl_fi_commands.h"],
+    deps = ["//sw/device/lib/ujson"],
+)
+
+cc_library(
+    name = "ml_dsa_sca_commands",
+    srcs = ["ml_dsa_sca_commands.c"],
+    hdrs = ["ml_dsa_sca_commands.h"],
     deps = ["//sw/device/lib/ujson"],
 )
 

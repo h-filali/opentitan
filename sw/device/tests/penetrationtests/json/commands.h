@@ -21,6 +21,7 @@ extern "C" {
     value(_, IbexSca) \
     value(_, KmacSca) \
     value(_, LCCtrlFi) \
+    value(_, MlDsaSca) \
     value(_, OtbnFi) \
     value(_, OtbnSca) \
     value(_, OtpFi) \
