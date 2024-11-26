@@ -18,8 +18,16 @@ extern "C" {
 
 #define ML_DSA_SCA_SUBCOMMAND(_, value) \
     value(_, Init) \
+    value(_, RejectFvsr) \
+    value(_, DecomposeFvsr) \
+    value(_, VecAddFvsr) \
+    value(_, VecSubFvsr) \
+    value(_, VecMulFvsr) \
+    value(_, VecMacFvsr) \
     value(_, NttFvsr) \
-    value(_, SingleNtt)
+    value(_, Ntt) \
+    value(_, InttFvsr) \
+    value(_, Intt)
 UJSON_SERDE_ENUM(MlDsaScaSubcommand, ml_dsa_sca_subcommand_t, ML_DSA_SCA_SUBCOMMAND);
 
 #define ML_DSA_SCA_DATA(field, string) \
@@ -30,7 +38,8 @@ UJSON_SERDE_STRUCT(MlDsaScaData, ml_dsa_sca_data_t, ML_DSA_SCA_DATA);
 #define ML_DSA_SCA_FVSR_DATA(field, string) \
     field(data, uint32_t, ML_DSA_SCA_CMD_MAX_DATA_BYTES) \
     field(data_length, size_t) \
-    field(iterations, uint32_t)
+    field(iterations, uint32_t) \
+    field(var_select, uint32_t)
 UJSON_SERDE_STRUCT(MlDsaScaFvsrData, ml_dsa_sca_fvsr_data_t, ML_DSA_SCA_FVSR_DATA);
 
 #define ML_DSA_SCA_RESULT(field, string) \
