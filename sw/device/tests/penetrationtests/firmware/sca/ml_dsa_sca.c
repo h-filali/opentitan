@@ -436,7 +436,7 @@ status_t handle_ml_dsa_sca(ujson_t *uj) {
     case kMlDsaScaSubcommandNtt:
       return handle_ml_dsa_sca_ntt(uj);
     case kMlDsaScaSubcommandNttFvsr:
-      return handle_ml_dsa_sca_intt_fvsr(uj);
+      return handle_ml_dsa_sca_ntt_fvsr(uj);
     case kMlDsaScaSubcommandIntt:
       return handle_ml_dsa_sca_intt(uj);
     case kMlDsaScaSubcommandInttFvsr:
