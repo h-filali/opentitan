@@ -180,6 +180,16 @@ status_t handle_ml_dsa_sca_init(ujson_t *uj) {
   return OK_STATUS();
 }
 
+status_t handle_ml_dsa_seed_lfsr(ujson_t *uj) {
+  ml_dsa_sca_lfsr_t uj_lfsr_data;
+  TRY(ujson_deserialize_ml_dsa_sca_lfsr_t(uj, &uj_lfsr_data));
+
+  uint32_t seed_local = read_32(uj_lfsr_data.seed);
+  pentest_seed_lfsr(seed_local, kPentestLfsrMasking);
+
+  return OK_STATUS();
+}
+
 static status_t handle_ml_dsa_sca_vec_fvsr(ujson_t *uj,
     ml_dsa_sca_fvsr_data_t uj_data, otbn_addr_t dmem_addr) {
 
@@ -421,6 +431,8 @@ status_t handle_ml_dsa_sca(ujson_t *uj) {
   switch (cmd) {
     case kMlDsaScaSubcommandInit:
       return handle_ml_dsa_sca_init(uj);
+    case kMlDsaScaSubcommandSeedLfsr:
+      return handle_ml_dsa_seed_lfsr(uj);
     case kMlDsaScaSubcommandRejectFvsr:
       return handle_ml_dsa_sca_reject_fvsr(uj);
     case kMlDsaScaSubcommandDecomposeFvsr:

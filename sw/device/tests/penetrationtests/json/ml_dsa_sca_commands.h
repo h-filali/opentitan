@@ -11,6 +11,7 @@ extern "C" {
 
 #define ML_DSA_SCA_CMD_MAX_DATA_BYTES 4*256
 #define ML_DSA_SCA_CMD_MAX_SEED_BYTES 4
+#define ML_DSA_SCA_CMD_MAX_LFSR_BYTES 4
 
 // clang-format off
 
@@ -18,6 +19,7 @@ extern "C" {
 
 #define ML_DSA_SCA_SUBCOMMAND(_, value) \
     value(_, Init) \
+    value(_, SeedLfsr) \
     value(_, RejectFvsr) \
     value(_, DecomposeFvsr) \
     value(_, VecAddFvsr) \
@@ -49,6 +51,10 @@ UJSON_SERDE_STRUCT(MlDsaScaResult, ml_dsa_sca_result_t, ML_DSA_SCA_RESULT);
 #define ML_DSA_SCA_SEED(field, string) \
     field(seed, uint8_t, ML_DSA_SCA_CMD_MAX_SEED_BYTES)
 UJSON_SERDE_STRUCT(MlDsaScaSeed, ml_dsa_sca_seed_t, ML_DSA_SCA_SEED);
+
+#define ML_DSA_SCA_LFSR(field, string) \
+    field(seed, uint8_t, ML_DSA_SCA_CMD_MAX_LFSR_BYTES)
+UJSON_SERDE_STRUCT(MlDsaScaLfsr, ml_dsa_sca_lfsr_t, ML_DSA_SCA_LFSR);
 // clang-format on
 
 #ifdef __cplusplus

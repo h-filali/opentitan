@@ -21,6 +21,7 @@ enum {
 };
 
 status_t handle_ml_dsa_pentest_init(ujson_t *uj);
+status_t handle_ml_dsa_seed_lfsr(ujson_t *uj);
 status_t handle_ml_dsa_sca_reject_fvsr(ujson_t *uj);
 status_t handle_ml_dsa_sca_decompose_fvsr(ujson_t *uj);
 status_t handle_ml_dsa_sca_vec_add_fvsr(ujson_t *uj);
