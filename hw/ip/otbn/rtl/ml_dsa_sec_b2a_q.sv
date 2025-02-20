@@ -103,7 +103,7 @@ module ml_dsa_sec_b2a_q #(
   // Assignments
   assign u_d = t2_d + (ShareWidth+1)'(Modulus);
   assign w1 = ({(ShareWidth+1){b0}} & (t2_q3 ^ u_q3)) ^ t2_q3;
-  assign w2 = ({(ShareWidth+1){b0}} & (t2_q3 ^ u_q3));
+  assign w2 = ({(ShareWidth+1){b1}} & (t2_q3 ^ u_q3));
   assign w = w1 ^ w2;
 
   // Get t1 into the right range z0 = t1 - n*q.
@@ -120,7 +120,7 @@ module ml_dsa_sec_b2a_q #(
 
   // Assign outputs
   assign ready_o = 1'b1;
-  assign valid_o = data_valid_q5;
+  assign valid_o = data_valid_q5 & ready_i;
 
   assign z0_o = z0[ShareWidth-1:0];
   assign z1_o = z1[ShareWidth-1:0];

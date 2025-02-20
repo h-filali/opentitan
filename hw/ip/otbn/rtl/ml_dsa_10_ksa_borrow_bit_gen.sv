@@ -73,7 +73,7 @@ module ml_dsa_10_ksa_borrow_bit_gen #(
   for (genvar ii = 1; ii < ShareWidth; ii=ii+2) begin : gen_ks_stage_1
     integer jj = ii/2;
     // Offset is 12 and each iteration uses 3 bits of randomness.
-    integer rand_index = 12 + 3*ii;
+    integer rand_index = 12 + 3*jj;
 
     assign a0_xor_u[ii] = a0[ii] ^ u[ii];
     assign a0_xor_u[ii-1] = a0[ii-1] ^ u[ii-1];
@@ -112,7 +112,7 @@ module ml_dsa_10_ksa_borrow_bit_gen #(
     integer mm = 2*ii - 1;
     integer ll = mm - 1;
     // Offset is 48 and each iteration uses 3 bits of randomness.
-    integer rand_index = 48 + 3*ii;
+    integer rand_index = 48 + 3*(ii-1);
 
     ml_dsa_dom_and u_ml_dsa_dom_and_s2 (
       .clk_i,
@@ -147,7 +147,7 @@ module ml_dsa_10_ksa_borrow_bit_gen #(
     integer mm = 2*ii - 1;
     integer ll = mm - 1;
     // Offset is 66 and each iteration uses 3 bits of randomness.
-    integer rand_index = 66 + 3*ii;
+    integer rand_index = 66 + 3*(ii-1);
 
     ml_dsa_dom_and u_ml_dsa_dom_and_s3 (
       .clk_i,
