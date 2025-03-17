@@ -26,19 +26,22 @@
 
     la x10, vec_mac_a
     la x11, vec_mac_b
-    la x12, vec_mac_res
+    la x12, vec_mac_a
 
-    LOOPI 32, 20
-        bn.lid x6, 0(x10++)                         /* x6 = x10[i] */
-        bn.lid x5, 0(x11++)                         /* x5 = x11[i] */
+    LOOPI 32, 23
+        bn.lid x6, 0(x10++)                         /*  w2 = x10[i] */
+        bn.lid x5, 0(x11++)                         /*  w3 = x11[i] */
+        bn.lid x4, 0(x12)                           /* w12 = x12[i] */
 
-        LOOPI 8, 16
+        LOOPI 8, 18
             /* Mask one coefficient to working registers */
-            bn.and w4, w2, w7                       /* w4 = w2 & w7 */
-            bn.and w5, w3, w7                       /* w5 = w3 & w7 */
+            bn.and  w4,  w2, w7                     /*  w4 =  w2 & w7 */
+            bn.and  w5,  w3, w7                     /*  w5 =  w3 & w7 */
+            bn.and w13, w12, w7                     /* w13 = w12 & w7 */
+
             /* Shift out used coefficient */
-            bn.rshi w2, w0, w2 >> 32                /* w2 = (w0 || w2) >> 32 */
-            bn.rshi w3, w0, w3 >> 32                /* w2 = (w0 || w2) >> 32 */
+            bn.rshi  w2, w0,  w2 >> 32                /* w2  = (w0 ||  w2) >> 32 */
+            bn.rshi w12, w0, w12 >> 32                /* w12 = (w0 || w12) >> 32 */
 
             /* Barrett multiplication */
             bn.mulqacc.wo.z w4, w4.0, w5.0, 0       /* w4 = w4*w5 */
@@ -54,14 +57,12 @@
             bn.subm w4, w4, w8
             bn.wsrw MOD, w8
             bn.subm w4, w4, w8
+            bn.addm w4, w4, w13
 
-            /* Accumulate result into w12 */
-            bn.addm w12, w12, w4
-
-        /* Dummy instruction to finish the outer loop */
-        bn.xor w0, w0, w0
+            /* Shift in result coefficient */
+            bn.rshi w3, w4, w3 >> 32                /* w3 = (w4 || w3) >> 32 */
         
-    bn.sid x4, 0(x12)                               /* MEM[x12] = w12 */
+        bn.sid x5, 0(x12++)                         /* x12[i] = w3 */
 
     ecall
 
@@ -93,7 +94,7 @@
     .globl vec_mac_a
     .balign 32
     vec_mac_a:
-    .word 0x00000004
+    .word 0x0060FC78
     .word 0x00000001
     .word 0x00000001
     .word 0x00000001
@@ -353,7 +354,7 @@
     .globl vec_mac_b
     .balign 32
     vec_mac_b:
-    .word 0x00000002
+    .word 0x0029EE21
     .word 0x00000001
     .word 0x00000001
     .word 0x00000001
@@ -609,15 +610,3 @@
     .word 0x00000001
     .word 0x00000001
     .word 0x00000001
-
-    .globl vec_mac_res
-    .balign 32
-    vec_mac_res:
-    .word 0x00000000
-    .word 0x00000000
-    .word 0x00000000
-    .word 0x00000000
-    .word 0x00000000
-    .word 0x00000000
-    .word 0x00000000
-    .word 0x00000000

@@ -117,6 +117,7 @@
     sw x0, 24(x12)
     sw x0, 28(x12)
     bn.lid x31, 0(x12)
+
     /* Set the modulus for modular operations */
     bn.wsrw MOD, w31
     bn.rshi w31, w31, w0 >> 192

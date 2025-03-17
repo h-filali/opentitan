@@ -40,7 +40,7 @@
     bn.add            w11,  w3,  w4           /* w11 = r + 127 */
     bn.rshi           w11, w31, w11 >> 7      /* w11 = (r + 127) >> 7 */
     bn.mulqacc.wo.z   w11, w11.0, w5.0, 0     /* w11 = w11 * 1025 */
-    bn.add            w11, w11,  w6           /* w11 = w11 + (1 << 21) */ 
+    bn.add            w11, w11,  w6           /* w11 = w11 + (1 << 21) */
     bn.rshi           w11, w31, w11 >> 22     /* w11 = w11 >> 22 */
     bn.and            w11, w11,  w7           /* w11 = w11 & 15 */
     la                x11, decompose_r1
@@ -53,7 +53,7 @@
     bn.sub            w12,  w3, w12           /* w12 = r - r1*2*GAMMA2 */
     bn.sub            w13,  w9, w12           /* w13 = (Q-1)/2 - w12 */
     bn.rshi           w13, w31, w13 >> 31     /* w13 = w13 >> 31 */
-    bn.and            w13, w13, w10           /* w13 = w13 & Q */ 
+    bn.and            w13, w13, w10           /* w13 = w13 & Q */
     bn.sub            w12, w12, w13           /* w12 = w12 - w13 */
     la                x12, decompose_r0
     li                 x2, 12

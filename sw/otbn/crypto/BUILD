@@ -90,6 +90,68 @@ otbn_binary(
 )
 
 otbn_binary(
+    name = "ml_dsa_sec_a2b",
+    srcs = [
+        "ml_dsa_sec_a2b.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_sec_add",
+    srcs = [
+        "ml_dsa_sec_add.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_sec_addm",
+    srcs = [
+        "ml_dsa_sec_addm.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_sec_and",
+    srcs = [
+        "ml_dsa_sec_and.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_sec_b2a",
+    srcs = [
+        "ml_dsa_sec_b2a.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_sec_decompose",
+    srcs = [
+        "ml_dsa_sec_decompose.s",
+    ],
+    deps = [
+        ":ml_dsa_sec_gadgets",
+    ],
+)
+
+otbn_library(
+    name = "ml_dsa_sec_gadgets",
+    srcs = [
+        "ml_dsa_sec_gadgets.s",
+    ],
+)
+
+otbn_binary(
+    name = "ml_dsa_sec_reject",
+    srcs = [
+        "ml_dsa_sec_reject.s",
+    ],
+    deps = [
+        ":ml_dsa_sec_gadgets",
+    ],
+)
+
+otbn_binary(
     name = "ml_dsa_vec_add",
     srcs = [
         "ml_dsa_vec_add.s",
