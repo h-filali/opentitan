@@ -7,6 +7,10 @@
 
 enum {
   /**
+   * Number of shares used for hardening.
+   */
+  kMlDsaNumShares = 2,
+  /**
    * Maximum Batch size.
    */
   kMlDsaMaxBatchSize = 32,

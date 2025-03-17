@@ -20,28 +20,54 @@ enum {
   kMlDsaDregSize = 1,
   kMlDsaWregSize = 8,
   kMlDsaVecSize = 256,
-  kMlDsaReject,
+  kMlDsaModulus = 8380417,
   kMlDsaDecompose,
+  kMlDsaSecReject,
+  kMlDsaSecDecompose,
   kMlDsaVecAdd,
   kMlDsaVecSub,
   kMlDsaVecMul,
   kMlDsaVecMac,
   kMlDsaNtt,
   kMlDsaIntt,
+  kMlDsaSecA2B,
+  kMlDsaSecAdd,
+  kMlDsaSecAddm,
+  kMlDsaSecAnd,
+  kMlDsaSecB2A,
 };
 
 // Reject
-OTBN_DECLARE_APP_SYMBOLS(ml_dsa_reject);
-OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_reject, inp_vec_z);
-OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_reject, inp_vec_r0);
-OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_reject, result);
-const otbn_app_t kOtbnAppMlDsaReject = OTBN_APP_T_INIT(ml_dsa_reject);
-static const otbn_addr_t kOtbnAppMlDsaRejectInpVecZ =
-    OTBN_ADDR_T_INIT(ml_dsa_reject, inp_vec_z);
-static const otbn_addr_t kOtbnAppMlDsaRejectInpVecR0 =
-    OTBN_ADDR_T_INIT(ml_dsa_reject, inp_vec_r0);
-static const otbn_addr_t kOtbnAppMlDsaRejectResult =
-    OTBN_ADDR_T_INIT(ml_dsa_reject, result);
+OTBN_DECLARE_APP_SYMBOLS(ml_dsa_sec_reject);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_reject, inp_z_s0);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_reject, inp_z_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_reject, result);
+const otbn_app_t kOtbnAppMlDsaSecReject = OTBN_APP_T_INIT(ml_dsa_sec_reject);
+static const otbn_addr_t kOtbnAppMlDsaSecRejectInpZS0 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_reject, inp_z_s0);
+static const otbn_addr_t kOtbnAppMlDsaSecRejectInpZS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_reject, inp_z_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecRejectResult =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_reject, result);
+
+// Decompose
+OTBN_DECLARE_APP_SYMBOLS(ml_dsa_sec_decompose);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_decompose, decompose_r_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_decompose, decompose_r_s2);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_decompose, decompose_r0_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_decompose, decompose_r0_s2);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_decompose, decompose_r1);
+const otbn_app_t kOtbnAppMlDsaSecDecompose = OTBN_APP_T_INIT(ml_dsa_sec_decompose);
+static const otbn_addr_t kOtbnAppMlDsaSecDecomposeInpRS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_decompose, decompose_r_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecDecomposeInpRS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_decompose, decompose_r_s2);
+static const otbn_addr_t kOtbnAppMlDsaSecDecomposeOupR0S1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_decompose, decompose_r0_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecDecomposeOupR0S2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_decompose, decompose_r0_s2);
+static const otbn_addr_t kOtbnAppMlDsaSecDecomposeOupR1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_decompose, decompose_r1);
 
 // Decompose
 OTBN_DECLARE_APP_SYMBOLS(ml_dsa_decompose);
@@ -90,14 +116,11 @@ static const otbn_addr_t kOtbnAppMlDsaVecMulB =
 OTBN_DECLARE_APP_SYMBOLS(ml_dsa_vec_mac);
 OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_vec_mac, vec_mac_a);
 OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_vec_mac, vec_mac_b);
-OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_vec_mac, vec_mac_res);
 const otbn_app_t kOtbnAppMlDsaVecMac = OTBN_APP_T_INIT(ml_dsa_vec_mac);
 static const otbn_addr_t kOtbnAppMlDsaVecMacA =
     OTBN_ADDR_T_INIT(ml_dsa_vec_mac, vec_mac_a);
 static const otbn_addr_t kOtbnAppMlDsaVecMacB =
     OTBN_ADDR_T_INIT(ml_dsa_vec_mac, vec_mac_b);
-static const otbn_addr_t kOtbnAppMlDsaVecMacRes =
-    OTBN_ADDR_T_INIT(ml_dsa_vec_mac, vec_mac_res);
 
 // Vector NTT
 OTBN_DECLARE_APP_SYMBOLS(ml_dsa_ntt);
@@ -112,6 +135,101 @@ OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_intt, ntt_w);
 const otbn_app_t kOtbnAppMlDsaIntt = OTBN_APP_T_INIT(ml_dsa_intt);
 static const otbn_addr_t kOtbnAppMlDsaInttW =
     OTBN_ADDR_T_INIT(ml_dsa_intt, ntt_w);
+
+// Secure A2B
+OTBN_DECLARE_APP_SYMBOLS(ml_dsa_sec_a2b);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_a2b, inp_x_s0);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_a2b, inp_x_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_a2b, result_s0);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_a2b, result_s1);
+const otbn_app_t kOtbnAppMlDsaSecA2B = OTBN_APP_T_INIT(ml_dsa_sec_a2b);
+static const otbn_addr_t kOtbnAppMlDsaSecA2BXS0 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_a2b, inp_x_s0);
+static const otbn_addr_t kOtbnAppMlDsaSecA2BXS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_a2b, inp_x_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecA2BResultS0 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_a2b, result_s0);
+static const otbn_addr_t kOtbnAppMlDsaSecA2BResultS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_a2b, result_s1);
+
+// Secure Add
+OTBN_DECLARE_APP_SYMBOLS(ml_dsa_sec_add);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_add, gadget_x_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_add, gadget_x_s2);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_add, gadget_y_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_add, gadget_y_s2);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_add, gadget_z_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_add, gadget_z_s2);
+const otbn_app_t kOtbnAppMlDsaSecAdd = OTBN_APP_T_INIT(ml_dsa_sec_add);
+static const otbn_addr_t kOtbnAppMlDsaSecAddXS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_add, gadget_x_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecAddXS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_add, gadget_x_s2);
+static const otbn_addr_t kOtbnAppMlDsaSecAddYS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_add, gadget_y_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecAddYS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_add, gadget_y_s2);
+static const otbn_addr_t kOtbnAppMlDsaSecAddZS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_add, gadget_z_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecAddZS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_add, gadget_z_s2);
+
+// Secure Addm
+OTBN_DECLARE_APP_SYMBOLS(ml_dsa_sec_addm);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_addm, gadget_x_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_addm, gadget_x_s2);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_addm, gadget_y_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_addm, gadget_y_s2);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_addm, gadget_z_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_addm, gadget_z_s2);
+const otbn_app_t kOtbnAppMlDsaSecAddm = OTBN_APP_T_INIT(ml_dsa_sec_addm);
+static const otbn_addr_t kOtbnAppMlDsaSecAddmXS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_addm, gadget_x_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecAddmXS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_addm, gadget_x_s2);
+static const otbn_addr_t kOtbnAppMlDsaSecAddmYS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_addm, gadget_y_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecAddmYS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_addm, gadget_y_s2);
+static const otbn_addr_t kOtbnAppMlDsaSecAddmZS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_addm, gadget_z_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecAddmZS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_addm, gadget_z_s2);
+
+// Secure And
+OTBN_DECLARE_APP_SYMBOLS(ml_dsa_sec_and);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_and, gadget_a_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_and, gadget_a_s2);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_and, gadget_b_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_and, gadget_b_s2);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_and, gadget_r);
+const otbn_app_t kOtbnAppMlDsaSecAnd = OTBN_APP_T_INIT(ml_dsa_sec_and);
+static const otbn_addr_t kOtbnAppMlDsaSecAndAS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_and, gadget_a_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecAndAS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_and, gadget_a_s2);
+static const otbn_addr_t kOtbnAppMlDsaSecAndBS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_and, gadget_b_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecAndBS2 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_and, gadget_b_s2);
+static const otbn_addr_t kOtbnAppMlDsaSecAndR =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_and, gadget_r);
+
+// Secure B2A
+OTBN_DECLARE_APP_SYMBOLS(ml_dsa_sec_b2a);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_b2a, inp_x_s0);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_b2a, inp_x_s1);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_b2a, result_s0);
+OTBN_DECLARE_SYMBOL_ADDR(ml_dsa_sec_b2a, result_s1);
+const otbn_app_t kOtbnAppMlDsaSecB2A = OTBN_APP_T_INIT(ml_dsa_sec_b2a);
+static const otbn_addr_t kOtbnAppMlDsaSecB2AXS0 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_b2a, inp_x_s0);
+static const otbn_addr_t kOtbnAppMlDsaSecB2AXS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_b2a, inp_x_s1);
+static const otbn_addr_t kOtbnAppMlDsaSecB2AResultS0 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_b2a, result_s0);
+static const otbn_addr_t kOtbnAppMlDsaSecB2AResultS1 =
+    OTBN_ADDR_T_INIT(ml_dsa_sec_b2a, result_s1);
 
 OTTF_DEFINE_TEST_CONFIG();
 
@@ -303,34 +421,34 @@ void ottf_external_isr(uint32_t *exc_info) {
       dif_rv_plic_irq_complete(&plic, kTopEarlgreyPlicTargetIbex0, irq_id));
 }
 
-static void otbn_wait_for_done_irq(dif_otbn_t *otbn) {
-  // Clear the otbn irq variable: we'll set it in the interrupt handler when
-  // we see the Done interrupt fire.
-  irq = UINT32_MAX;
-  irq_id = UINT32_MAX;
-  plic_peripheral = UINT32_MAX;
-  // Enable Done interrupt.
-  CHECK_DIF_OK(
-      dif_otbn_irq_set_enabled(otbn, kDifOtbnIrqDone, kDifToggleEnabled));
+// static void otbn_wait_for_done_irq(dif_otbn_t *otbn) {
+//   // Clear the otbn irq variable: we'll set it in the interrupt handler when
+//   // we see the Done interrupt fire.
+//   irq = UINT32_MAX;
+//   irq_id = UINT32_MAX;
+//   plic_peripheral = UINT32_MAX;
+//   // Enable Done interrupt.
+//   CHECK_DIF_OK(
+//       dif_otbn_irq_set_enabled(otbn, kDifOtbnIrqDone, kDifToggleEnabled));
 
-  // At this point, OTBN should be running. Wait for an interrupt that says
-  // it's done.
-  ATOMIC_WAIT_FOR_INTERRUPT(plic_peripheral != UINT32_MAX);
+//   // At this point, OTBN should be running. Wait for an interrupt that says
+//   // it's done.
+//   ATOMIC_WAIT_FOR_INTERRUPT(plic_peripheral != UINT32_MAX);
 
-  CHECK(plic_peripheral == kTopEarlgreyPlicPeripheralOtbn,
-        "Interrupt from incorrect peripheral: (exp: %d, obs: %s)",
-        kTopEarlgreyPlicPeripheralOtbn, plic_peripheral);
+//   CHECK(plic_peripheral == kTopEarlgreyPlicPeripheralOtbn,
+//         "Interrupt from incorrect peripheral: (exp: %d, obs: %s)",
+//         kTopEarlgreyPlicPeripheralOtbn, plic_peripheral);
 
-  // Check this is the interrupt we expected.
-  CHECK(irq_id == kTopEarlgreyPlicIrqIdOtbnDone);
+//   // Check this is the interrupt we expected.
+//   CHECK(irq_id == kTopEarlgreyPlicIrqIdOtbnDone);
 
-  // Disable Done interrupt.
-  CHECK_DIF_OK(
-      dif_otbn_irq_set_enabled(otbn, kDifOtbnIrqDone, kDifToggleDisabled));
+//   // Disable Done interrupt.
+//   CHECK_DIF_OK(
+//       dif_otbn_irq_set_enabled(otbn, kDifOtbnIrqDone, kDifToggleDisabled));
 
-  // Acknowledge Done interrupt. This clears INTR_STATE.done back to 0.
-  CHECK_DIF_OK(dif_otbn_irq_acknowledge(otbn, kDifOtbnIrqDone));
-}
+//   // Acknowledge Done interrupt. This clears INTR_STATE.done back to 0.
+//   CHECK_DIF_OK(dif_otbn_irq_acknowledge(otbn, kDifOtbnIrqDone));
+// }
 
 static void otbn_init_irq(void) {
   mmio_region_t plic_base_addr =
@@ -354,165 +472,40 @@ static void otbn_init_irq(void) {
   irq_external_ctrl(true);
 }
 
-static void ml_dsa_reject(void) {
-  static const uint32_t kMlDsaRejectPassing[kMlDsaVecSize] = {
-      0x00016883, 0x00018972, 0x000341C7, 0x0001E4F4,
-      0x00027CE2, 0x0000F6B0, 0x00008C58, 0x00033409,
-      0x000003E8, 0x0002881E, 0x0002CDA4, 0x0001DBAB,
-      0x0000B322, 0x000255FF, 0x00008464, 0x00019CDA,
-      0x0002D748, 0x00034838, 0x00030F89, 0x0003CFC3,
-      0x00032119, 0x0003D890, 0x00037CD6, 0x0003C02B,
-      0x00039FA9, 0x0000190E, 0x00019488, 0x000060F9,
-      0x000052C5, 0x0000AB57, 0x00007FB9, 0x00035770,
-      0x00001E8C, 0x00027E41, 0x0003BCB6, 0x00000F8B,
-      0x00033697, 0x00014E17, 0x0003441E, 0x00001CAC,
-      0x000368E9, 0x0001CFA3, 0x0002D56C, 0x000318FB,
-      0x0001492F, 0x0001914D, 0x0003D3FB, 0x0003F76F,
-      0x0003BD30, 0x0003200D, 0x00008DB8, 0x000146E5,
-      0x00001ED8, 0x000123ED, 0x0001AAAB, 0x0001D3AF,
-      0x00010CAE, 0x0003C26C, 0x0001DFDD, 0x00004B99,
-      0x0000EC2D, 0x0001F356, 0x00021DD0, 0x00031CD3,
-      0x00037A4E, 0x0003F4F0, 0x0001F650, 0x0003309F,
-      0x00006B0C, 0x0003680F, 0x00031B80, 0x00003C7E,
-      0x00036D13, 0x0001FB79, 0x0003596D, 0x00017132,
-      0x0003995A, 0x0003C1CC, 0x000382A2, 0x0003DC44,
-      0x000254B7, 0x0002094A, 0x0003F910, 0x00029374,
-      0x0001A707, 0x0000EC1D, 0x0003692F, 0x0001EA67,
-      0x0000296A, 0x00036884, 0x0000AF4E, 0x0002C528,
-      0x00015A10, 0x0002ED6D, 0x00034C52, 0x00014359,
-      0x000214F9, 0x00001957, 0x00027B9E, 0x0001E902,
-      0x0001BE77, 0x00030F28, 0x000312F5, 0x000186B7,
-      0x0003F4F0, 0x0001BCE0, 0x0003317B, 0x000218EA,
-      0x0002F213, 0x00008CCD, 0x0001D617, 0x00010D35,
-      0x0002190B, 0x0001D088, 0x0000BAD4, 0x0002A646,
-      0x00038DE5, 0x00007A17, 0x0003EF16, 0x0003A7D3,
-      0x00017CE9, 0x0002219D, 0x00030787, 0x000193AD,
-      0x0001CAA9, 0x0001E4B9, 0x00025304, 0x0000A32E,
-      0x000084CA, 0x000256B1, 0x00017A9C, 0x00019CF0,
-      0x00010E97, 0x0003F1F4, 0x0000B51E, 0x00036F61,
-      0x0003D37C, 0x0002964C, 0x000393F3, 0x0000F0EA,
-      0x0002A721, 0x0003A04C, 0x0002257F, 0x000109FF,
-      0x0002A63E, 0x00026698, 0x0001EE28, 0x0002C4E2,
-      0x00020A92, 0x0002454C, 0x0002F5DA, 0x00004146,
-      0x0003E865, 0x00030C5D, 0x000036C0, 0x0000E4A2,
-      0x00003058, 0x000242E7, 0x0002FCEF, 0x0003BE05,
-      0x0001AE1E, 0x00021DE7, 0x000354DC, 0x0002CC80,
-      0x000211D0, 0x00011F3E, 0x00021EE3, 0x000073F6,
-      0x00028316, 0x0003CAEF, 0x0000EE2C, 0x0000747E,
-      0x0001D9E4, 0x0002442F, 0x0000D660, 0x0000A3CB,
-      0x0002814D, 0x00034472, 0x00039C9D, 0x0001A8D3,
-      0x00021913, 0x0002BB11, 0x000160D1, 0x0003F690,
-      0x00016E14, 0x000300B9, 0x00012441, 0x00019E33,
-      0x00032CF2, 0x0003DABA, 0x0001C371, 0x0002FA47,
-      0x0003C397, 0x00014F78, 0x0002C3C0, 0x00037C89,
-      0x00035D6B, 0x0000F4A7, 0x0000B16C, 0x0001DF8A,
-      0x00014B88, 0x000223D7, 0x00018DE9, 0x0003445B,
-      0x000301AD, 0x0001B3CA, 0x00037A2A, 0x00006140,
-      0x00019D13, 0x0003134E, 0x000349F8, 0x00028581,
-      0x00037434, 0x00035A0E, 0x0003C373, 0x000352C9,
-      0x0000F0AC, 0x00017789, 0x00014783, 0x0000D6F3,
-      0x00004194, 0x0000EC3B, 0x0001DE72, 0x00001115,
-      0x0000B31F, 0x0001D96A, 0x0000F6B5, 0x00002CB1,
-      0x00028C0A, 0x0003C0B9, 0x00029DB7, 0x00027347,
-      0x00039A36, 0x00015BDF, 0x0003EF85, 0x0000A05E,
-      0x000073DA, 0x0003F087, 0x00027018, 0x00020AD6,
-      0x00026762, 0x000236E5, 0x00028D8D, 0x0001D097,
-      0x000379C8, 0x00003776, 0x00004FAC, 0x00000F2D,
-      0x00039ACE, 0x0002E341, 0x0002D8BC, 0x00011F44,
-      0x0000F41E, 0x0000C811, 0x0000D64C, 0x0003DE2C,};
+static void ml_dsa_sec_reject(void) {
+  static const uint32_t reject_z_s0[kMlDsaWregSize] = {
+      0x00000001, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
 
-  static const uint32_t kMlDsaRejectFailing[kMlDsaVecSize] = {
-      0x0078A0FF, 0x004C2B27, 0x0031DDB6, 0x006B6139,
-      0x000D4B13, 0x007790D1, 0x0010DCD4, 0x000F5DD2,
-      0x005FF7E2, 0x00245E0B, 0x007BF1C8, 0x000225AC,
-      0x0061C332, 0x000D98F3, 0x00488B9D, 0x00462C85,
-      0x0067FD5E, 0x001E207B, 0x005EB930, 0x0043F5A8,
-      0x00196B2D, 0x0049B0DE, 0x0006F238, 0x0043A67A,
-      0x0022AA41, 0x0067CFBA, 0x00057796, 0x0021071E,
-      0x003207CD, 0x00375555, 0x00651F14, 0x002BBC15,
-      0x00417C6A, 0x00467852, 0x004B6B3B, 0x004D37E8,
-      0x0025CFEF, 0x0059D398, 0x00509560, 0x000AB50E,
-      0x0001677B, 0x00164003, 0x00662512, 0x002DFA9D,
-      0x000EC13B, 0x0061B25F, 0x00716FDA, 0x00311456,
-      0x00107D91, 0x0057FEEF, 0x0033770C, 0x00304AE9,
-      0x000FE48B, 0x006378BE, 0x0072CC59, 0x0049AF9A,
-      0x0047883D, 0x0045FF6F, 0x00046FA6, 0x00633314,
-      0x00491420, 0x00767563, 0x0061FD3E, 0x0014E8D5,
-      0x001B5A28, 0x001F638B, 0x001EC86A, 0x00397970,
-      0x000CB882, 0x003C0174, 0x002D65B9, 0x006E5176,
-      0x00488D60, 0x006C64F6, 0x007FDBD6, 0x0025FF4A,
-      0x00284D6A, 0x0052AD16, 0x00519107, 0x0057529E,
-      0x005A6036, 0x006AE873, 0x002E1FD1, 0x003B596E,
-      0x00102084, 0x00589EC4, 0x004CFDE4, 0x00438288,
-      0x006A5ED9, 0x0053BB01, 0x007EC096, 0x00525BFB,
-      0x004918B1, 0x00691B39, 0x00261D6C, 0x0054B93C,
-      0x005D6B91, 0x002760C1, 0x00700276, 0x0018F787,
-      0x0003DDF3, 0x00705BC2, 0x003116AB, 0x0025B8B9,
-      0x00579255, 0x0032DFCA, 0x00271D74, 0x0020A8B4,
-      0x0026A6F2, 0x0063B09C, 0x007E39BC, 0x000210A1,
-      0x00515620, 0x00374B26, 0x000CEB72, 0x000C17B4,
-      0x003180B5, 0x005A82F7, 0x006A1EC1, 0x0079997D,
-      0x006F7F2D, 0x00281A83, 0x001817FF, 0x003F673C,
-      0x00079E51, 0x00280216, 0x003FEAD9, 0x0001E3A2,
-      0x00116B30, 0x004E94EC, 0x006147AC, 0x0018A2D5,
-      0x002D5B62, 0x006F0518, 0x000C0FB1, 0x0005A497,
-      0x000592E0, 0x007B5A0A, 0x007A21D1, 0x001F877A,
-      0x0010FE99, 0x007BDDD2, 0x0025E759, 0x006EB9A9,
-      0x0026699C, 0x00535334, 0x0028E93E, 0x004B3197,
-      0x003FAECA, 0x005133FA, 0x00280BBF, 0x003CCFC6,
-      0x001081C8, 0x0053B395, 0x00170443, 0x002F7A80,
-      0x0028D559, 0x003A49FA, 0x00437AB2, 0x003BD37A,
-      0x006967F0, 0x005D55FD, 0x00002129, 0x001E9A87,
-      0x004FD292, 0x000BA24E, 0x002B6C1B, 0x004C032A,
-      0x006AD50D, 0x005EEA11, 0x0068A377, 0x0077B503,
-      0x0073008D, 0x002BB8F2, 0x002619AD, 0x004E5533,
-      0x002BE0A6, 0x006E6862, 0x0036668F, 0x0044FDB2,
-      0x007D14F2, 0x002F7241, 0x000DFF35, 0x000BBAF6,
-      0x0075D5AD, 0x007D874E, 0x00360A40, 0x00559B03,
-      0x00663404, 0x006C8BED, 0x003545EF, 0x005B1EC8,
-      0x00710EBA, 0x006A3E98, 0x0024FE97, 0x00691B06,
-      0x001C8376, 0x002619B3, 0x001B9310, 0x00453370,
-      0x002D77E0, 0x005D92A6, 0x004B0B8F, 0x003EBA8B,
-      0x0018C99D, 0x005FD08B, 0x00392C31, 0x006210C9,
-      0x005C3E2F, 0x005B75DD, 0x0034B366, 0x0026697E,
-      0x00609FD8, 0x0039F442, 0x0079952C, 0x001F1318,
-      0x00107B80, 0x0012C81B, 0x00644500, 0x004005F8,
-      0x00361911, 0x00479796, 0x007F598C, 0x00785689,
-      0x003D58D6, 0x007068D2, 0x007328A7, 0x00464B42,
-      0x006429D0, 0x000621DF, 0x0057B213, 0x004A1035,
-      0x002100E2, 0x00267C87, 0x001BBE21, 0x00409EA2,
-      0x00291C21, 0x00794455, 0x0018EC05, 0x0002D839,
-      0x005F3830, 0x00332D97, 0x006FAAE8, 0x00536FDF,
-      0x00112A4E, 0x000C619A, 0x0008C6B4, 0x00269C5D,
-      0x002C3B6A, 0x0027B5DE, 0x000A144E, 0x006A8AD3,
-      0x004041D7, 0x00000393, 0x001457E3, 0x0003FE88,};
+  static const uint32_t reject_z_s1[kMlDsaWregSize] = {
+      0x00000001, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
 
   bool fail = false;
-  uint32_t response = 0;
-  uint32_t response_exp;
+  uint32_t response[kMlDsaWregSize] = {0};
+  uint32_t response_exp[kMlDsaWregSize] = {0};
 
   // Initialize
   CHECK_DIF_OK(
       dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
   otbn_init_irq();
-  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaReject));
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaSecReject));
 
-  LOG_INFO("Rejection Loop sampling");
+  LOG_INFO("Rejection sampling");
 
   // Write input arguments.
   if (fail) {
-    response_exp = 0;
     CHECK_STATUS_OK(
-      otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaRejectFailing, kOtbnAppMlDsaRejectInpVecZ));
+        otbn_dmem_write(/*num_words=*/kMlDsaVecSize, reject_z_s0, kOtbnAppMlDsaSecRejectInpZS0));
     CHECK_STATUS_OK(
-      otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaRejectFailing, kOtbnAppMlDsaRejectInpVecR0));
+        otbn_dmem_write(/*num_words=*/kMlDsaVecSize, reject_z_s1, kOtbnAppMlDsaSecRejectInpZS1));
 
   } else {
-    response_exp = 1;
+    response_exp[0] = 0x00000001;
     CHECK_STATUS_OK(
-      otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaRejectPassing, kOtbnAppMlDsaRejectInpVecZ));
+        otbn_dmem_write(/*num_words=*/kMlDsaVecSize, reject_z_s0, kOtbnAppMlDsaSecRejectInpZS0));
     CHECK_STATUS_OK(
-      otbn_dmem_write(/*num_words=*/kMlDsaVecSize, kMlDsaRejectPassing, kOtbnAppMlDsaRejectInpVecR0));
+        otbn_dmem_write(/*num_words=*/kMlDsaVecSize, reject_z_s1, kOtbnAppMlDsaSecRejectInpZS1));
   }
 
   // Call OTBN to perform operation, and wait for it to complete.
@@ -526,9 +519,9 @@ static void ml_dsa_reject(void) {
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_dmem_read(/*num_words=*/kMlDsaDregSize, kOtbnAppMlDsaRejectResult, &response));
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecRejectResult, response));
 
-  CHECK(response == response_exp);
+  CHECK_ARRAYS_EQ(response, response_exp, kMlDsaWregSize);
 
 }
 
@@ -580,6 +573,79 @@ static void ml_dsa_decompose(void) {
       otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaDecomposeOupR0, decompose_r0_act));
   CHECK_STATUS_OK(
       otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaDecomposeOupR1, decompose_r1_act));
+
+  CHECK_ARRAYS_EQ(decompose_r0_act, decompose_r0_exp, kMlDsaWregSize);
+  CHECK_ARRAYS_EQ(decompose_r1_act, decompose_r1_exp, kMlDsaWregSize);
+
+}
+
+static void ml_dsa_sec_decompose(void) {
+  static const uint32_t decompose_r_s1[kMlDsaWregSize] = {
+      0x0017E2DB, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t decompose_r_s2[kMlDsaWregSize] = {
+      0x0012D2D9, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t decompose_r0_exp[kMlDsaWregSize] = {
+      0x007EFDB5, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t decompose_r1_exp[kMlDsaWregSize] = {
+      0x0000000F, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t decompose_r0_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t decompose_r0_s1_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t decompose_r0_s2_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t decompose_r1_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  // Initialize
+  CHECK_DIF_OK(
+      dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
+  otbn_init_irq();
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaSecDecompose));
+
+  LOG_INFO("Decompose");
+
+  // Write input arguments.
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, decompose_r_s1, kOtbnAppMlDsaSecDecomposeInpRS1));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, decompose_r_s2, kOtbnAppMlDsaSecDecomposeInpRS2));
+
+  // Call OTBN to perform operation, and wait for it to complete.
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
+
+  // Read back results.
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecDecomposeOupR0S1, decompose_r0_s1_act));
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecDecomposeOupR0S2, decompose_r0_s2_act));
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecDecomposeOupR1, decompose_r1_act));
+
+  for (int i=0; i<kMlDsaWregSize; i++) {
+    decompose_r0_act[i] = (decompose_r0_s1_act[i] + decompose_r0_s2_act[i]) % kMlDsaModulus;
+  }
 
   CHECK_ARRAYS_EQ(decompose_r0_act, decompose_r0_exp, kMlDsaWregSize);
   CHECK_ARRAYS_EQ(decompose_r1_act, decompose_r1_exp, kMlDsaWregSize);
@@ -887,11 +953,73 @@ static void ml_dsa_vec_mul(void) {
 }
 
 static void ml_dsa_vec_mac(void) {
-  static const uint32_t kOupVecExp[kMlDsaWregSize] = {
-      0x0046F033, 0x00000000, 0x00000000, 0x00000000,
-      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+  static const uint32_t kOupVecExp[kMlDsaVecSize] = {
+      0x00594ab0, 0x00733c48, 0x0037f4ab, 0x00115c52,
+      0x006c8ab7, 0x0055f622, 0x0062de29, 0x0029571a,
+      0x0001c906, 0x00214ca0, 0x007f6c17, 0x004e79ae,
+      0x001c5e48, 0x0042b9b0, 0x0032ad4a, 0x0005ac7a,
+      0x001bead1, 0x006fd39a, 0x001c796f, 0x003ee469,
+      0x0042c679, 0x00682d1b, 0x003b507c, 0x00328495,
+      0x003c33f2, 0x003698ca, 0x0041a0d9, 0x005be71b,
+      0x0042c253, 0x000ec81e, 0x0050ffc5, 0x004ee274,
+      0x001b8892, 0x002076c5, 0x007000a7, 0x001e219a,
+      0x005e112a, 0x006c8b3f, 0x0067aef3, 0x003a5d71,
+      0x000897a0, 0x007ea329, 0x0049099a, 0x00627746,
+      0x002c7038, 0x00426825, 0x0021484a, 0x0031313f,
+      0x003dcce0, 0x000d271f, 0x007f4347, 0x003a2008,
+      0x003a966f, 0x001b14d6, 0x0023174c, 0x0017ff1c,
+      0x001a8bad, 0x000468c0, 0x0034c1b9, 0x0061aad9,
+      0x007c13f6, 0x002e6b24, 0x0008bde1, 0x0075d76f,
+      0x0002ec39, 0x0078ca92, 0x003ff80e, 0x006ce2b8,
+      0x001edad4, 0x007218cc, 0x003474fc, 0x001b00b6,
+      0x000d16aa, 0x002038c9, 0x00158705, 0x003fffaf,
+      0x0011ed42, 0x0008fbef, 0x00530cb0, 0x004f891c,
+      0x0027f80a, 0x0042ce47, 0x00496172, 0x0045e354,
+      0x0025c071, 0x00395a4e, 0x00246dc1, 0x00230eb9,
+      0x003669fa, 0x004b6854, 0x0060ec05, 0x0025931c,
+      0x0025ebe1, 0x0056dc7c, 0x005c09de, 0x0061e0fc,
+      0x00659075, 0x0006498c, 0x0004add5, 0x00045902,
+      0x00516491, 0x0047ed29, 0x002e65a8, 0x00496c86,
+      0x006b15a5, 0x005cb9a9, 0x0011877b, 0x001d5b35,
+      0x003a6eb6, 0x0012b0b1, 0x007c25ce, 0x003a76f7,
+      0x0063e45a, 0x0053579f, 0x00105e90, 0x002909e5,
+      0x002530d7, 0x00413e8c, 0x005b0713, 0x0058806b,
+      0x000d8506, 0x0052677c, 0x00636221, 0x00367351,
+      0x0060bcd0, 0x003dabc5, 0x00711cc4, 0x0035ba23,
+      0x001d422d, 0x007eecbe, 0x003d2fd1, 0x006f8e4a,
+      0x00044e11, 0x001e2685, 0x0059305a, 0x00566a9d,
+      0x003f47ce, 0x00154489, 0x005e7f15, 0x005c0fb3,
+      0x0027ea38, 0x0074f886, 0x00539e60, 0x00095790,
+      0x00536cf1, 0x007400a7, 0x0020b7b4, 0x00244bd0,
+      0x001ca7fd, 0x007245df, 0x0028dd38, 0x00074631,
+      0x003a4157, 0x0048a11d, 0x006d4443, 0x005276f3,
+      0x001bb285, 0x0011a6bb, 0x00058781, 0x0026340e,
+      0x003d1928, 0x004017d7, 0x0035e984, 0x004e667c,
+      0x00794233, 0x005f2592, 0x0061927b, 0x005a7734,
+      0x00228f66, 0x00163332, 0x004ddc49, 0x00274a3b,
+      0x005a7fec, 0x0042795d, 0x0064d432, 0x005fa5b6,
+      0x001cd842, 0x002f795a, 0x0068cb70, 0x004c6dda,
+      0x00069350, 0x00463b75, 0x00676cc8, 0x000675eb,
+      0x002bad7a, 0x001f9f82, 0x003eb39d, 0x0065cc1d,
+      0x001fb49a, 0x001448eb, 0x00048529, 0x0066b047,
+      0x0015a0d5, 0x0004e776, 0x005f4165, 0x00257fae,
+      0x0065cd86, 0x005ced6b, 0x0024d019, 0x0069274d,
+      0x004767c1, 0x00003885, 0x003f24fd, 0x00540f88,
+      0x00321966, 0x006e617f, 0x005a36e0, 0x0001b54b,
+      0x002fdd6d, 0x0071e45b, 0x00534804, 0x0050dd03,
+      0x004279fc, 0x0010ec1b, 0x00610e18, 0x001602e2,
+      0x0002f61c, 0x006a3bfb, 0x005a5c6e, 0x006a0a21,
+      0x000dbf39, 0x001c0156, 0x0033e464, 0x005a664b,
+      0x00525158, 0x003fabdd, 0x001a9cef, 0x00707c40,
+      0x00487480, 0x0035eca4, 0x00157916, 0x004b1dd3,
+      0x0048b5ed, 0x00744978, 0x005d061a, 0x003c7abe,
+      0x000c4601, 0x0072330c, 0x005368de, 0x00472514,
+      0x00144866, 0x0000b04e, 0x001e416d, 0x00522a1f,
+      0x00450523, 0x007d9b4d, 0x00151fca, 0x004a97ca,
+      0x0049f172, 0x0034379d, 0x004fd2f4, 0x0047fb3a,
+      0x003fd16b, 0x00526119, 0x0006d595, 0x002c9e44,};
 
-  uint32_t kOupVecAct[kMlDsaWregSize] = {0};
+  uint32_t kOupVecAct[kMlDsaVecSize] = {0};
 
   // Initialize
   CHECK_DIF_OK(
@@ -918,9 +1046,9 @@ static void ml_dsa_vec_mac(void) {
 
   // Read back results.
   CHECK_STATUS_OK(
-      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaVecMacRes, kOupVecAct));
+      otbn_dmem_read(/*num_words=*/kMlDsaVecSize, kOtbnAppMlDsaVecMacA, kOupVecAct));
 
-  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, kMlDsaWregSize);
+  CHECK_ARRAYS_EQ(kOupVecAct, kOupVecExp, kMlDsaVecSize);
 
 }
 
@@ -1120,13 +1248,368 @@ static void ml_dsa_intt(void) {
 
 }
 
+static void ml_dsa_sec_a2b(void) {
+  // 0x00223354
+  static const uint32_t sec_a2b_x_s0[kMlDsaWregSize] = {
+      0x0014BEEF, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t sec_a2b_x_s1[kMlDsaWregSize] = {
+      0x002C0014, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+  
+  static const uint32_t sec_a2b_result_exp[kMlDsaWregSize] = {
+      0x0040BF03, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_a2b_result_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_a2b_result_s0_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_a2b_result_s1_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  // Initialize
+  CHECK_DIF_OK(
+      dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
+  otbn_init_irq();
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaSecA2B));
+
+  LOG_INFO("SecA2B");
+
+  // Write input arguments.
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_a2b_x_s0, kOtbnAppMlDsaSecA2BXS0));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_a2b_x_s1, kOtbnAppMlDsaSecA2BXS1));
+
+  // Call OTBN to perform operation, and wait for it to complete.
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
+
+  // Read back results.
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecA2BResultS0, sec_a2b_result_s0_act));
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecA2BResultS1, sec_a2b_result_s1_act));
+
+  for (int i=0; i<kMlDsaWregSize; i++) {
+    sec_a2b_result_act[i] = sec_a2b_result_s0_act[i] ^ sec_a2b_result_s1_act[i];
+  }
+
+  CHECK_ARRAYS_EQ(sec_a2b_result_act, sec_a2b_result_exp, kMlDsaWregSize);
+
+}
+
+static void ml_dsa_sec_add(void) {
+  static const uint32_t sec_add_x_s1[kMlDsaWregSize] = {
+      0x0008E616, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t sec_add_x_s2[kMlDsaWregSize] = {
+      0x0066E21A, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t sec_add_y_s1[kMlDsaWregSize] = {
+      0x003BD56B, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t sec_add_y_s2[kMlDsaWregSize] = {
+      0x001013B0, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+  
+  static const uint32_t sec_add_z_exp[kMlDsaWregSize] = {
+      0x0019CAE7, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_add_z_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_add_z_s1_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_add_z_s2_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  // Initialize
+  CHECK_DIF_OK(
+      dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
+  otbn_init_irq();
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaSecAdd));
+
+  LOG_INFO("SecAdd");
+
+  // Write input arguments.
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_add_x_s1, kOtbnAppMlDsaSecAddXS1));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_add_x_s2, kOtbnAppMlDsaSecAddXS2));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_add_y_s1, kOtbnAppMlDsaSecAddYS1));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_add_y_s2, kOtbnAppMlDsaSecAddYS2));
+
+  // Call OTBN to perform operation, and wait for it to complete.
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
+
+  // Read back results.
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecAddZS1, sec_add_z_s1_act));
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecAddZS2, sec_add_z_s2_act));
+
+  for (int i=0; i<kMlDsaWregSize; i++) {
+    sec_add_z_act[i] = sec_add_z_s1_act[i] ^ sec_add_z_s2_act[i];
+  }
+
+  CHECK_ARRAYS_EQ(sec_add_z_act, sec_add_z_exp, kMlDsaWregSize);
+
+}
+
+static void ml_dsa_sec_addm(void) {
+  static const uint32_t sec_addm_x_s1[kMlDsaWregSize] = {
+      0x0017E2DB, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t sec_addm_x_s2[kMlDsaWregSize] = {
+      0x0012D2D9, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t sec_addm_y_s1[kMlDsaWregSize] = {
+      0x0017E2DB, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t sec_addm_y_s2[kMlDsaWregSize] = {
+      0x0012D2D9, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+  
+  static const uint32_t sec_addm_z_exp[kMlDsaWregSize] = {
+      0x000A6004, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_addm_z_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_addm_z_s1_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_addm_z_s2_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  // Initialize
+  CHECK_DIF_OK(
+      dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
+  otbn_init_irq();
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaSecAddm));
+
+  LOG_INFO("SecAddm");
+
+  // Write input arguments.
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_addm_x_s1, kOtbnAppMlDsaSecAddmXS1));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_addm_x_s2, kOtbnAppMlDsaSecAddmXS2));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_addm_y_s1, kOtbnAppMlDsaSecAddmYS1));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_addm_y_s2, kOtbnAppMlDsaSecAddmYS2));
+
+  // Call OTBN to perform operation, and wait for it to complete.
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
+
+  // Read back results.
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecAddmZS1, sec_addm_z_s1_act));
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecAddmZS2, sec_addm_z_s2_act));
+
+  for (int i=0; i<kMlDsaWregSize; i++) {
+    sec_addm_z_act[i] = sec_addm_z_s1_act[i] ^ sec_addm_z_s2_act[i];
+  }
+
+  CHECK_ARRAYS_EQ(sec_addm_z_act, sec_addm_z_exp, kMlDsaWregSize);
+
+}
+
+static void ml_dsa_sec_and(void) {
+  static const uint32_t gadget_a_s1[kMlDsaWregSize] = {
+      0x00000001, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t gadget_a_s2[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t gadget_b_s1[kMlDsaWregSize] = {
+      0x00000001, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t gadget_b_s2[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t gadget_r[kMlDsaWregSize] = {
+      0x00000001, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+  
+  static const uint32_t gadget_c_exp[kMlDsaWregSize] = {
+      0x00000001, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t gadget_c_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t gadget_c_s1_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t gadget_c_s2_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  // Initialize
+  CHECK_DIF_OK(
+      dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
+  otbn_init_irq();
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaSecAnd));
+
+  LOG_INFO("SecAnd");
+
+  // Write input arguments.
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, gadget_a_s1, kOtbnAppMlDsaSecAndAS1));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, gadget_a_s2, kOtbnAppMlDsaSecAndAS2));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, gadget_b_s1, kOtbnAppMlDsaSecAndBS1));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, gadget_b_s2, kOtbnAppMlDsaSecAndBS2));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, gadget_r, kOtbnAppMlDsaSecAndR));
+
+  // Call OTBN to perform operation, and wait for it to complete.
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
+
+  // Read back results.
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecAndAS1, gadget_c_s1_act));
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecAndAS2, gadget_c_s2_act));
+
+  for (int i=0; i<kMlDsaWregSize; i++) {
+    gadget_c_act[i] = gadget_c_s1_act[i] ^ gadget_c_s2_act[i];
+  }
+
+  CHECK_ARRAYS_EQ(gadget_c_act, gadget_c_exp, kMlDsaWregSize);
+
+}
+
+static void ml_dsa_sec_b2a(void) {
+  static const uint32_t sec_b2a_x_s0[kMlDsaWregSize] = {
+      0x0017E2DB, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  static const uint32_t sec_b2a_x_s1[kMlDsaWregSize] = {
+      0x0012D2D9, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+  
+  static const uint32_t sec_b2a_result_exp[kMlDsaWregSize] = {
+      0x00053002, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_b2a_result_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_b2a_result_s0_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  uint32_t sec_b2a_result_s1_act[kMlDsaWregSize] = {
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,
+      0x00000000, 0x00000000, 0x00000000, 0x00000000,};
+
+  // Initialize
+  CHECK_DIF_OK(
+      dif_otbn_init(mmio_region_from_addr(TOP_EARLGREY_OTBN_BASE_ADDR), &otbn));
+  otbn_init_irq();
+  CHECK_STATUS_OK(otbn_load_app(kOtbnAppMlDsaSecB2A));
+
+  LOG_INFO("SecB2A");
+
+  // Write input arguments.
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_b2a_x_s0, kOtbnAppMlDsaSecB2AXS0));
+  CHECK_STATUS_OK(
+    otbn_dmem_write(/*num_words=*/kMlDsaWregSize, sec_b2a_x_s1, kOtbnAppMlDsaSecB2AXS1));
+
+  // Call OTBN to perform operation, and wait for it to complete.
+  uint64_t start_cycles = ibex_mcycle_read();
+  CHECK_STATUS_OK(otbn_execute());
+  otbn_busy_wait_for_done();
+  uint64_t end_cycles = ibex_mcycle_read();
+  CHECK(end_cycles - start_cycles <= UINT32_MAX);
+  uint32_t cycles = (uint32_t)(end_cycles - start_cycles);
+  LOG_INFO("took %u cycles", cycles);
+
+  // Read back results.
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecB2AResultS0, sec_b2a_result_s0_act));
+  CHECK_STATUS_OK(
+      otbn_dmem_read(/*num_words=*/kMlDsaWregSize, kOtbnAppMlDsaSecB2AResultS1, sec_b2a_result_s1_act));
+
+  for (int i=0; i<kMlDsaWregSize; i++) {
+    sec_b2a_result_act[i] = (sec_b2a_result_s0_act[i] + sec_b2a_result_s1_act[i]) % kMlDsaModulus;
+  }
+
+  CHECK_ARRAYS_EQ(sec_b2a_result_act, sec_b2a_result_exp, kMlDsaWregSize);
+
+}
+
 bool test_main(void) {
   CHECK_STATUS_OK(entropy_testutils_auto_mode_init());
 
-  switch (kMlDsaNtt) {
-    case kMlDsaReject: ml_dsa_reject();
-            break;
+  switch (kMlDsaSecDecompose) {
     case kMlDsaDecompose: ml_dsa_decompose();
+            break;
+    case kMlDsaSecReject: ml_dsa_sec_reject();
+            break;
+    case kMlDsaSecDecompose: ml_dsa_sec_decompose();
             break;
     case kMlDsaVecAdd: ml_dsa_vec_add();
             break;
@@ -1140,7 +1623,17 @@ bool test_main(void) {
             break;
     case kMlDsaIntt: ml_dsa_intt();
             break;
-    default: ml_dsa_reject();
+    case kMlDsaSecA2B: ml_dsa_sec_a2b();
+            break;
+    case kMlDsaSecAdd: ml_dsa_sec_add();
+            break;
+    case kMlDsaSecAddm: ml_dsa_sec_addm();
+            break;
+    case kMlDsaSecAnd: ml_dsa_sec_and();
+            break;
+    case kMlDsaSecB2A: ml_dsa_sec_b2a();
+            break;
+    default: ml_dsa_sec_reject();
   }
 
   return true;
