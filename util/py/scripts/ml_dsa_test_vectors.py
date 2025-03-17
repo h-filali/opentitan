@@ -53,9 +53,7 @@ r1  = r1 >> 22
 r1 &= 15
 
 r0  = r - r1*2*GAMMA2
-print("r0: " + '0x' + '{:08X}'.format(r0))
 r0 -= (((q-1) // 2 - r0) >> 31) & q
-print("r0: " + '0x' + '{:08X}'.format(r0))
 
 print("Decomopose test input / results:")
 print("r: " + '0x' + '{:08X}'.format(r))
