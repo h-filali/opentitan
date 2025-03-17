@@ -1,8 +1,8 @@
 // Security gadget for hardening ML-DSA.
 // This gadget is a masked implementation of
-// y = (b_j & a_j & a_i) ^ (b_i & a_i) ^ (a_j & b_j & b_i)
+// y = (u_j & a_j & a_i) ^ (u_i & a_i) ^ (a_j & u_j & u_i)
 // This gadget uses two random bits (r0, r1) to refresh it's inputs.
-// The bits from b come from a constant and thus are not masked.
+// The bits from u come from a constant and thus are not masked.
 // The bits from a come from a secret sharing and the operations
 // where different shares are mixed need to be refreshed.
 // Such as a_j & a_i.
