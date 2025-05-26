@@ -9,6 +9,7 @@ from .decode import EmptyInsn
 from .isa import OTBNInsn
 from .state import OTBNState, FsmState
 from .stats import ExecutionStats
+from .secrets import OTBNsecrets
 from .trace import Trace
 
 # A dictionary that defines a function of the form "address -> from -> to". If
@@ -28,6 +29,7 @@ class OTBNSim:
         self.program: List[OTBNInsn] = []
         self.loop_warps: LoopWarps = {}
         self.stats: Optional[ExecutionStats] = None
+        self.secrets: Optional[OTBNsecrets] = None
         self._execute_generator: Optional[Iterator[None]] = None
         self._next_insn: Optional[OTBNInsn] = None
 
@@ -51,7 +53,7 @@ class OTBNSim:
         '''
         self.state.dmem.load_le_words(data, has_validity)
 
-    def start(self, collect_stats: bool) -> None:
+    def start(self, collect_stats: bool, secrets: str) -> None:
         '''Prepare to start the execution.
 
         Use run() or step() to actually execute the program.
@@ -60,7 +62,7 @@ class OTBNSim:
         self.stats = ExecutionStats(self.program) if collect_stats else None
         self._execute_generator = None
         self._next_insn = None
-        self.state.start()
+        self.state.start(secrets)
 
     def initial_secure_wipe(self) -> None:
         '''This is run at the start of a secure wipe after reset.'''

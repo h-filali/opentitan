@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 
 from .trace import Trace
 
@@ -41,6 +41,11 @@ class Reg:
         self._uval = uval
         self._next_uval: Optional[int] = None
 
+        # List of tuples containing a secret and a share ID.
+        # One register can contain information on multiple secrets.
+        self._secret_ids = None
+        self._next_secret_ids = None
+
     def read_unsigned(self, backdoor: bool = False) -> int:
         return self._uval
 
@@ -48,9 +53,10 @@ class Reg:
         if self._parent is not None:
             self._parent.mark_written(self._idx)
 
-    def write_unsigned(self, uval: int) -> None:
+    def write_unsigned(self, uval: int, secret_ids=None) -> None:
         assert 0 <= uval < (1 << self._width)
         self._next_uval = uval
+        self._next_secret_ids = secret_ids
         self._mark_written()
 
     def read_next(self) -> Optional[int]:
@@ -64,22 +70,32 @@ class Reg:
         '''Read value as an unsigned integer, but invert all bits'''
         return self.read_unsigned() ^ ((1 << self._width) - 1)
 
-    def write_signed(self, ival: int) -> None:
+    def write_signed(self, ival: int, secret_ids=None) -> None:
         assert -(1 << (self._width - 1)) <= ival < (1 << (self._width - 1))
         uval = (1 << self._width) + ival if ival < 0 else ival
-        self.write_unsigned(uval)
+        self.write_unsigned(uval, secret_ids)
 
     def write_invalid(self) -> None:
         self._next_uval = None
+        self._next_secret_ids = None
         self._mark_written()
 
     def commit(self) -> None:
         if self._next_uval is not None:
             self._uval = self._next_uval
+            self._secret_ids = self._next_secret_ids
         self._next_uval = None
+        self._next_secret_ids = None
 
     def abort(self) -> None:
         self._next_uval = None
+        self._next_secret_ids = None
+
+    def read_secret(self) -> Optional[Tuple[Tuple[int], Tuple[int]]]:
+        return self._secret_ids
+
+    def read_secret_next(self) -> Optional[Tuple[Tuple[int], Tuple[int]]]:
+        return self._next_secret_ids
 
 
 class RegFile:

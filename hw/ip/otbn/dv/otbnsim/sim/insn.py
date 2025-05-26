@@ -258,7 +258,7 @@ class LW(OTBNInsn):
             state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
             return None
 
-        result = state.dmem.load_u32(addr)
+        [result, secret_ids] = state.dmem.load_u32(addr)
 
         # Stall for a single cycle for memory to respond
         yield None
@@ -267,7 +267,7 @@ class LW(OTBNInsn):
             state.stop_at_end_of_cycle(ErrBits.DMEM_INTG_VIOLATION)
             return None
 
-        state.gprs.get_reg(self.grd).write_unsigned(result)
+        state.gprs.get_reg(self.grd).write_unsigned(result, secret_ids)
         return None
 
 
@@ -284,6 +284,7 @@ class SW(OTBNInsn):
         base = state.gprs.get_reg(self.grs1).read_unsigned()
         addr = (base + self.offset) & ((1 << 32) - 1)
         value = state.gprs.get_reg(self.grs2).read_unsigned()
+        secret_ids = state.gprs.get_reg(self.grs2).read_secret()
 
         bad_grs1 = state.gprs.call_stack_err and (self.grs1 == 1)
 
@@ -300,7 +301,7 @@ class SW(OTBNInsn):
         if saw_err:
             return
 
-        state.dmem.store_u32(addr, value)
+        state.dmem.store_u32(addr, value, secret_ids)
 
 
 class BEQ(OTBNInsn):
@@ -1076,7 +1077,7 @@ class BNLID(OTBNInsn):
             return None
 
         wrd = grd_val & 0x1f
-        value = state.dmem.load_u256(addr)
+        [value, secret_ids] = state.dmem.load_u256(addr)
 
         if self.grd_inc:
             new_grd_val = grd_val + 1
@@ -1093,7 +1094,7 @@ class BNLID(OTBNInsn):
             state.stop_at_end_of_cycle(ErrBits.DMEM_INTG_VIOLATION)
             return None
 
-        state.wdrs.get_reg(wrd).write_unsigned(value)
+        state.wdrs.get_reg(wrd).write_unsigned(value, secret_ids)
         return None
 
 
@@ -1149,8 +1150,9 @@ class BNSID(OTBNInsn):
 
         wrs = grs2_val & 0x1f
         wrs_val = state.wdrs.get_reg(wrs).read_unsigned()
+        secret_ids = state.wdrs.get_reg(wrs).read_secret()
 
-        state.dmem.store_u256(addr, wrs_val)
+        state.dmem.store_u256(addr, wrs_val, secret_ids)
         return None
 
 
@@ -1164,7 +1166,10 @@ class BNMOV(OTBNInsn):
 
     def execute(self, state: OTBNState) -> None:
         value = state.wdrs.get_reg(self.wrs).read_unsigned()
-        state.wdrs.get_reg(self.wrd).write_unsigned(value)
+        secret_ids = state.wdrs.get_reg(self.wrs).read_secret()
+        print("TEST")
+        print(secret_ids)
+        state.wdrs.get_reg(self.wrd).write_unsigned(value, secret_ids)
 
 
 class BNMOVR(OTBNInsn):

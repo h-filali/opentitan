@@ -124,6 +124,14 @@ py_library(
 )
 
 py_library(
+    name = "secrets",
+    srcs = ["secrets.py"],
+    deps = [
+        ":sim",
+    ],
+)
+
+py_library(
     name = "sim",
     srcs = ["sim.py"],
     deps = [

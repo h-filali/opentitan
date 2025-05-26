@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import struct
-from typing import Dict, List, Sequence, Optional
+import json
+from typing import Dict, List, Sequence, Optional, Tuple
 
 from shared.mem_layout import get_memory_layout
 
@@ -11,10 +12,11 @@ from .trace import Trace
 
 
 class TraceDmemStore(Trace):
-    def __init__(self, addr: int, value: int, is_wide: bool):
+    def __init__(self, addr: int, value: int, is_wide: bool, secred_ids: Tuple):
         self.addr = addr
         self.value = value
         self.is_wide = is_wide
+        self.secret_ids = secred_ids
 
     def trace(self) -> str:
         num_bytes = 32 if self.is_wide else 4
@@ -53,6 +55,7 @@ class Dmem:
         # try to read it. Otherwise, we store the integer value.
         num_words = dmem_size // 4
         self.data: List[Optional[int]] = [None] * num_words
+        self.secret_ids = [None] * num_words
 
         # Because it's an actual memory, stores to DMEM take two cycles in the
         # RTL. We wouldn't need to model this except that a DMEM invalidation
@@ -64,7 +67,7 @@ class Dmem:
         # self.pending list. Entries here will only make it to self.data on the
         # next commit().
         self.trace: List[TraceDmemStore] = []
-        self.pending: Dict[int, int] = {}
+        self.pending = {}  # type: Dict[int, [int, [[int, int]]]]
 
     def _load_5byte_le_words(self, data: bytes) -> None:
         '''Replace the start of memory with data
@@ -162,26 +165,29 @@ class Dmem:
 
         return True
 
-    def load_u256(self, addr: int) -> Optional[int]:
+    def load_u256(self, addr: int) -> Tuple[int, Tuple[int, int]]:
         '''Read a u256 little-endian value from an aligned address'''
         assert addr >= 0
         assert self.is_valid_256b_addr(addr)
         ret_data = 0
+        secret_ids_comb = []
         for i in range(256 // 32):
-            rd_data = self.load_u32(addr + 4 * i)
+            [rd_data, secret_ids] = self.load_u32(addr + 4 * i)
             if rd_data is None:
                 return None
             ret_data = ret_data | (rd_data << (i * 32))
+            if secret_ids[0] not in secret_ids_comb:
+                secret_ids_comb += secret_ids
 
-        return ret_data
+        return [ret_data, secret_ids_comb]
 
-    def store_u256(self, addr: int, value: int) -> None:
+    def store_u256(self, addr: int, value: int, secret_ids: Tuple) -> None:
         '''Write a u256 little-endian value to an aligned address'''
         assert addr >= 0
         assert 0 <= value < (1 << 256)
         assert self.is_valid_256b_addr(addr)
 
-        self.trace.append(TraceDmemStore(addr, value, True))
+        self.trace.append(TraceDmemStore(addr, value, True, secret_ids))
 
     def is_valid_32b_addr(self, addr: int) -> bool:
         '''Return true if this is a valid address for a LW/SW instruction'''
@@ -194,7 +200,7 @@ class Dmem:
 
         return True
 
-    def load_u32(self, addr: int) -> Optional[int]:
+    def load_u32(self, addr: int) -> Tuple[int, Tuple[int, int]]:
         '''Read a 32-bit value from memory.
 
         addr should be 4-byte aligned. The result is returned as an unsigned
@@ -211,9 +217,9 @@ class Dmem:
         if pending_val is not None:
             return pending_val
 
-        return self.data[addr // 4]
+        return [self.data[addr // 4], self.secret_ids[addr // 4]]
 
-    def store_u32(self, addr: int, value: int) -> None:
+    def store_u32(self, addr: int, value: int, secret_ids: Tuple) -> None:
         '''Store a 32-bit unsigned value to memory.
 
         addr should be 4-byte aligned.
@@ -223,7 +229,7 @@ class Dmem:
         assert 0 <= value <= (1 << 32) - 1
         assert self.is_valid_32b_addr(addr)
 
-        self.trace.append(TraceDmemStore(addr, value, False))
+        self.trace.append(TraceDmemStore(addr, value, False, secret_ids))
 
     def changes(self) -> Sequence[Trace]:
         return self.trace
@@ -235,11 +241,11 @@ class Dmem:
             mask = (1 << 32) - 1
             for i in range(256 // 32):
                 wr_data = (item.value >> (i * 32)) & mask
-                self.pending[(item.addr // 4) + i] = wr_data
+                self.pending[(item.addr // 4) + i] = [wr_data, item.secret_ids]
 
         else:
             assert 0 <= item.value <= (1 << 32) - 1
-            self.pending[item.addr // 4] = item.value
+            self.pending[item.addr // 4] = [item.value, item.secret_ids]
 
     def commit(self) -> None:
         # Move items from self.pending to self.data
@@ -257,3 +263,17 @@ class Dmem:
 
     def empty_dmem(self) -> None:
         self.data = [None] * len(self.data)
+        self.secret_ids = [None] * len(self.secret_ids)
+    
+    def mark_secrets(self, secrets=None) -> None:
+        if secrets is not None:
+            print(secrets)
+
+            # Open and parse the JSON file
+            with open(secrets, 'r') as f:
+                data = json.load(f)
+
+            # Use the data
+            for addr in data["secret_addrs"]:
+                for i in range(addr[0], addr[0] + addr[1]):
+                    self.secret_ids[i] = [[addr[2], addr[3]]]

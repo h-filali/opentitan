@@ -36,10 +36,25 @@ def main() -> int:
         help=("after execution, write execution statistics to this file. "
               "Use '-' to write to STDOUT.")
     )
+    parser.add_argument(
+        '--secrets',
+        metavar="FILE",
+        type=str,
+        help=("before execution, configure the initial secret state using this argument. "
+              "Use '-' to read from STDIN.")
+    )
+    parser.add_argument(
+        '--dump-secrets',
+        metavar="FILE",
+        type=argparse.FileType('w'),
+        help=("after execution, write secrets trace and styleguide violations to this file. "
+              "Use '-' to write to STDOUT.")
+    )
 
     args = parser.parse_args()
 
     collect_stats = args.dump_stats is not None
+    collect_secrets = args.dump_secrets is not None
 
     sim = StandaloneSim()
     exp_end_addr = load_elf(sim, args.elf)
@@ -49,7 +64,7 @@ def main() -> int:
 
     sim.state.ext_regs.commit()
 
-    sim.start(collect_stats)
+    sim.start(collect_stats, args.secrets)
     sim.run(verbose=args.verbose, dump_file=args.dump_regs)
 
     if exp_end_addr is not None:
@@ -66,6 +81,9 @@ def main() -> int:
         assert sim.stats is not None
         stat_analyzer = ExecutionStatAnalyzer(sim.stats, args.elf)
         args.dump_stats.write(stat_analyzer.dump())
+
+    # if collect_secrets:
+        # write to file here
 
     return 0
 

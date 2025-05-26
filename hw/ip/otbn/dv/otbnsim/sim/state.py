@@ -348,7 +348,7 @@ class OTBNState:
         self.csrs.flags.abort()
         self.wdrs.abort()
 
-    def start(self) -> None:
+    def start(self, secrets=None) -> None:
         '''Start running; perform state init'''
         self.ext_regs.write('STATUS', Status.BUSY_EXECUTE, True)
         self.pending_halt = False
@@ -373,6 +373,8 @@ class OTBNState:
         self.ext_regs.rnd_poison()
 
         self._urnd_client.request()
+
+        self.dmem.mark_secrets(secrets)
 
     def stop(self) -> None:
         '''Set flags to stop the processor and maybe abort the instruction.
