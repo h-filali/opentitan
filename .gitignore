@@ -91,3 +91,7 @@ book
 
 # Custom Ruff config overrides
 .ruff.toml
+
+# Random ignores
+lib
+lib64
