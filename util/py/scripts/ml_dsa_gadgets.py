@@ -1,5 +1,6 @@
 from random import randrange
 import time
+import math
 
 MODULUS = 8380417
 d = 2
@@ -175,6 +176,7 @@ def secAddModp(x, y, k, q=MODULUS):
 
 def refresh(x, k):
     r = randrange(2<<k)
+    y = [None]*2
     y[0] = x[0] ^ r
     y[1] = x[1] ^ r
 
@@ -652,7 +654,7 @@ def secLeq(x, phi, k):
 # - Number of bits per share k
 # Outputs:
 # - Bool which is 1 if -l0 <= x <= l1 and 0 otherwise
-def secSampleModp(x, l0, l1, k, q=MODULUS, gamma=44):
+def secBoundCheck(x, l0, l1, k, q=MODULUS, gamma=44):
     x[0] = (x[0] + l0) % q
     xB = secA2BModp(x, k)
     return secLeq(xB, l0+l1, k)
@@ -666,7 +668,6 @@ def secDecompose(r, k, q=MODULUS, gamma=44):
     const = (const * 1732267787797143553) % (2**64)
     for i in range(d):
         s[i] = (-gamma * r[i]) % q
-        print("s", i, hex(s[i]))
         res_plan = (const * r[i]) % (2**64)
         res_plan = res_plan >> 32
         res_plan += 1
@@ -680,13 +681,7 @@ def secDecompose(r, k, q=MODULUS, gamma=44):
     t0 = time.time()
 
     sp = secA2BModp(s, k)
-    print("sp0", hex(sp[0]))
-    print("sp1", hex(sp[1]))
-    print("sp", hex(sp[1] ^ sp[0]))
     spp = secB2AModp(sp, k, gamma)
-    print("spp0", hex(spp[0]))
-    print("spp1", hex(spp[1]))
-    print("spp", hex(spp[1] ^ spp[0]))
 
     t1 = time.time()
     time_a2b_b2a += t1-t0
@@ -704,116 +699,140 @@ def secDecompose(r, k, q=MODULUS, gamma=44):
 
     return [r0, r1]
 
-# Secure AND test
-a = [randrange(2) for _ in range(d)]
-b = [randrange(2) for _ in range(d)]
-c = secAnd(a,b)
+# Inputs:
+# - Random k bit Boolean sharing x
+# - Bounds l0 and l1 with l0 ≥ 0, l1 ≥ 0 and l0 + l1 < q
+# Outputs:
+# - None or Arithmetic sharing y with uniformly distributed y such that −l0 ≤ x ≤ l1 mod q
+def secSampleModp(x, l0, l1, q=MODULUS):
+    assert l0 >= 0
+    assert l1 >= 0
+    assert (l0 + l1) < q
 
-c_unmasked_shares = 0
-for val in c:
-    c_unmasked_shares ^= val
+    # k = math.ceil(math.log((l0+l1+1), 2))
+    k = k_q
 
-a_unmasked = 0
-for val in a:
-    a_unmasked ^= val
+    if secLeq(x, l0+l1, k) == 0:
+        return None
 
-b_unmasked = 0
-for val in b:
-    b_unmasked ^= val
+    y = secB2AModp(x, k)
+    y[0] = (y[0] - l0) % q
 
-c_unmasked = a_unmasked & b_unmasked
+    y_unmasked = (y[0] + y[1]) % q
+    assert (y_unmasked <= l1) or (y_unmasked >= (-l0 % q))
 
-assert c_unmasked_shares == c_unmasked
+    return y
 
-# Secure Add test
-x = [randrange(MODULUS) for _ in range(d)]
-y = [randrange(MODULUS) for _ in range(d)]
-z = secAdd(x,y,k_q+1)
-z_exp = (x[0] ^ x[1]) + (y[0] ^ y[1])
-assert (z[0] ^ z[1]) == z_exp
+# # Secure AND test
+# a = [randrange(2) for _ in range(d)]
+# b = [randrange(2) for _ in range(d)]
+# c = secAnd(a,b)
 
-# Secure Addm test
-z = secAddModp(x,y,k_q)
-z_exp = ((x[0] ^ x[1]) + (y[0] ^ y[1])) % MODULUS
-assert (z[0] ^ z[1]) == z_exp
+# c_unmasked_shares = 0
+# for val in c:
+#     c_unmasked_shares ^= val
 
-# Secure A2B and B2A test
-x_b = secA2BModp(x, k_q)
-x_a = secB2AModp(x_b, k_q)
-assert unmaskA(x) == unmaskA(x_a)
+# a_unmasked = 0
+# for val in a:
+#     a_unmasked ^= val
 
-# SecLeq test
-smaller = randrange(2)
-phi = 524168
-x = [randrange(MODULUS) for _ in range(d)]
-x_b = secA2BModp(x, k_q)
-b_exp = ((x_b[0] ^ x_b[1]) <= phi)
+# b_unmasked = 0
+# for val in b:
+#     b_unmasked ^= val
 
-if smaller:
-    while not b_exp:
-        x = [randrange(MODULUS) for _ in range(d)]
-        x_b = secA2BModp(x, k_q)
-        b_exp = ((x_b[0] ^ x_b[1]) <= phi)
+# c_unmasked = a_unmasked & b_unmasked
 
-x_b = [0x520ee2, 0x7a179]
-b_exp = ((x_b[0] ^ x_b[1]) <= phi)
+# assert c_unmasked_shares == c_unmasked
 
-time_a2b = 0
-time_b2a = 0
-time_sec_add = 0
-time_sec_add_mod = 0
-t0 = time.time()
-b = secLeq(x_b, phi, k_q)
-t1 = time.time()
-total = t1-t0
+# # Secure Add test
+# x = [randrange(MODULUS) for _ in range(d)]
+# y = [randrange(MODULUS) for _ in range(d)]
+# z = secAdd(x,y,k_q+1)
+# z_exp = (x[0] ^ x[1]) + (y[0] ^ y[1])
+# assert (z[0] ^ z[1]) == z_exp
 
-print("SecLeq")
-print("----------------------------------------------")
-print("Time:                   ", 10**9 * total, "ns")
-print("Time A2B:               ", 10**9 * time_a2b, "ns")
-print("Time w/o A2B:           ", 10**9 * (total - time_a2b), "ns")
-print("Time B2A:               ", 10**9 * time_b2a, "ns")
-print("Time w/o B2A:           ", 10**9 * (total - time_b2a), "ns")
-print("Time A2B and B2A:       ", 10**9 * time_a2b_b2a, "ns")
-print("Time w/o A2B and B2A:   ", 10**9 * (total - time_a2b_b2a), "ns")
-print("Time SEC_ADD:           ", 10**9 * time_sec_add, "ns")
-print("Time w/o SEC_ADD:       ", 10**9 * (total - time_sec_add), "ns")
-print("Time SEC_ADD_MOD_P:     ", 10**9 * time_sec_add_mod, "ns")
-print("Time w/o SEC_ADD_MOD_P: ", 10**9 * (total - time_sec_add_mod), "ns")
-print("----------------------------------------------")
+# # Secure Addm test
+# z = secAddModp(x,y,k_q)
+# z_exp = ((x[0] ^ x[1]) + (y[0] ^ y[1])) % MODULUS
+# assert (z[0] ^ z[1]) == z_exp
 
-assert b == b_exp
+# # Secure A2B and B2A test
+# x_b = secA2BModp(x, k_q)
+# x_a = secB2AModp(x_b, k_q)
+# assert unmaskA(x) == unmaskA(x_a)
+
+# # SecLeq test
+# smaller = randrange(2)
+# phi = 524168
+# x = [randrange(MODULUS) for _ in range(d)]
+# x_b = secA2BModp(x, k_q)
+# b_exp = ((x_b[0] ^ x_b[1]) <= phi)
+
+# if smaller:
+#     while not b_exp:
+#         x = [randrange(MODULUS) for _ in range(d)]
+#         x_b = secA2BModp(x, k_q)
+#         b_exp = ((x_b[0] ^ x_b[1]) <= phi)
+
+# x_b = [0x520ee2, 0x7a179]
+# b_exp = ((x_b[0] ^ x_b[1]) <= phi)
+
+# time_a2b = 0
+# time_b2a = 0
+# time_sec_add = 0
+# time_sec_add_mod = 0
+# t0 = time.time()
+# b = secLeq(x_b, phi, k_q)
+# t1 = time.time()
+# total = t1-t0
+
+# print("SecLeq")
+# print("----------------------------------------------")
+# print("Time:                   ", 10**9 * total, "ns")
+# print("Time A2B:               ", 10**9 * time_a2b, "ns")
+# print("Time w/o A2B:           ", 10**9 * (total - time_a2b), "ns")
+# print("Time B2A:               ", 10**9 * time_b2a, "ns")
+# print("Time w/o B2A:           ", 10**9 * (total - time_b2a), "ns")
+# print("Time A2B and B2A:       ", 10**9 * time_a2b_b2a, "ns")
+# print("Time w/o A2B and B2A:   ", 10**9 * (total - time_a2b_b2a), "ns")
+# print("Time SEC_ADD:           ", 10**9 * time_sec_add, "ns")
+# print("Time w/o SEC_ADD:       ", 10**9 * (total - time_sec_add), "ns")
+# print("Time SEC_ADD_MOD_P:     ", 10**9 * time_sec_add_mod, "ns")
+# print("Time w/o SEC_ADD_MOD_P: ", 10**9 * (total - time_sec_add_mod), "ns")
+# print("----------------------------------------------")
+
+# assert b == b_exp
 
 # Secure Decompose test
-r = [randrange(MODULUS) for _ in range(d)]
-# r = [1565403, 1233625]
-r = [0x0051D03F, 0x001DE654]
-print("r", r)
-print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-print("r[0]", hex(r[0]))
-print("r[1]", hex(r[1]))
-r_unmasked = unmaskA(r)
-s = (-44*r_unmasked + (MODULUS-1)//2) % MODULUS
-r1  = s % 44
-r0  = (r_unmasked - r1*(MODULUS-1)//44) % MODULUS
+# r = [randrange(MODULUS) for _ in range(d)]
+# # r = [1565403, 1233625]
+# r = [0x0051D03F, 0x001DE654]
+# print("r", r)
+# print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+# print("r[0]", hex(r[0]))
+# print("r[1]", hex(r[1]))
+# r_unmasked = unmaskA(r)
+# s = (-44*r_unmasked + (MODULUS-1)//2) % MODULUS
+# r1  = s % 44
+# r0  = (r_unmasked - r1*(MODULUS-1)//44) % MODULUS
 
-assert r_unmasked == ((r1*(MODULUS-1)//44) + r0) % MODULUS
+# assert r_unmasked == ((r1*(MODULUS-1)//44) + r0) % MODULUS
 
-total = 0
-time_a2b = 0
-time_b2a = 0
-time_a2b_b2a = 0
-time_sec_add = 0
-time_sec_add_mod = 0
+# total = 0
+# time_a2b = 0
+# time_b2a = 0
+# time_a2b_b2a = 0
+# time_sec_add = 0
+# time_sec_add_mod = 0
 
-t0 = time.time()
-[r0_act, r1_act] = secDecompose(r, k_q)
-t1 = time.time()
-total = t1-t0
-print("r1_act", hex(r1_act))
-print("r0_act[0]", hex(r0_act[0]))
-print("r0_act[1]", hex(r0_act[1]))
-print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+# t0 = time.time()
+# [r0_act, r1_act] = secDecompose(r, k_q)
+# t1 = time.time()
+# total = t1-t0
+# print("r1_act", hex(r1_act))
+# print("r0_act[0]", hex(r0_act[0]))
+# print("r0_act[1]", hex(r0_act[1]))
+# print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 
 # print("Decompose")
 # print("----------------------------------------------")
@@ -871,3 +890,12 @@ print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 # u = [0x65d8db, 0x1a699f]
 
 # x = secB2Aq(u, MODULUS)
+
+
+# Secure Sample Mod p test
+x = [randrange(2**3) for _ in range(d)]
+l0 = 2
+l1 = 2
+y = secSampleModp(x, l0, l1, q=MODULUS)
+
+print(y)
