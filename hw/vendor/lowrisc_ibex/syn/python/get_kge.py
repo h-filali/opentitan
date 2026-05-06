@@ -22,12 +22,14 @@ def read_lib(lib_file_path, ref_cell):
                 raise RuntimeError('{}:{} Found cell while searching for area'
                                    .format(lib_file_path, line_idx + 1))
             cell_name = line.split()[1].strip('()')
-        elif line.startswith('\tarea'):
+        # elif line.startswith('\tarea'):
+        elif line.strip().startswith('area'):
             if cell_name is None:
                 raise RuntimeError('{}:{} Found area while searching for cell'
                                    .format(lib_file_path, line_idx + 1))
             try:
-                cell_area = line.split()[2].strip(';')
+                # cell_area = line.split()[2].strip(';')
+                cell_area = line.split(':')[-1].strip().strip(';')
                 cell_dict[cell_name] = float(cell_area)
                 cell_name = None
             except (IndexError, ValueError):
@@ -49,15 +51,16 @@ def get_kge(report_path, weighted_dict):
     ge = 0.0
     for line_idx, line in enumerate(report):
         data = line.split()
-        if not data:
+        if len(data) < 3: # Skip short lines or headers
             continue
-        weight = weighted_dict.get(data[0])
+
+        # In Yosys 'stat' output, the cell name is usually the last element
+        cell_name = data[-1]
+        cell_count = data[0]
+
+        weight = weighted_dict.get(cell_name)
         if weight is not None:
-            try:
-                ge += float(data[1]) * weight
-            except (IndexError, ValueError):
-                raise RuntimeError('{}:{} Cell {} matched but was misformatted'
-                                   .format(report_path, line_idx + 1, data[0]))
+            ge += float(cell_count) * weight
     print("Area in kGE = ", round(ge/1000, 2))
 
 

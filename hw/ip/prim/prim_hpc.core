@@ -1,0 +1,43 @@
+CAPI=2:
+# Copyright lowRISC contributors (OpenTitan project).
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+name: "lowrisc:prim:hpc:0.1"
+description: "PINI-secure Hardware Private Circuit gadgets (HPC2, HPC3)"
+filesets:
+  files_rtl:
+    depend:
+      - lowrisc:prim:assert
+      - lowrisc:prim:xor2
+      - lowrisc:prim:and2
+    files:
+      - rtl/prim_hpc2.sv
+      - rtl/prim_hpc3.sv
+    file_type: systemVerilogSource
+
+  files_verilator_waiver:
+    depend:
+      - lowrisc:lint:common
+    files:
+      - lint/prim.vlt
+    file_type: vlt
+
+  files_ascentlint_waiver:
+    depend:
+      - lowrisc:lint:common
+    files:
+      - lint/prim.waiver
+    file_type: waiver
+
+  files_veriblelint_waiver:
+    depend:
+      - lowrisc:lint:common
+
+targets:
+  default:
+    filesets:
+      - tool_verilator   ? (files_verilator_waiver)
+      - tool_ascentlint  ? (files_ascentlint_waiver)
+      - tool_veriblelint ? (files_veriblelint_waiver)
+      - files_rtl

@@ -103,6 +103,33 @@ package otbn_pkg;
                           StatusBusySecWipeInt};
   endfunction
 
+  // Mask conversion operation type for the mask accelerator.
+  // Encoding generated at commit 1fc1c08d07 using Python 3.10.12 with:
+  // $ ./util/design/sparse-fsm-encode.py --language=sv \
+  //     --seed 2298831234 --distance 3 --states 4 --bits 5
+  //
+  // Hamming distance histogram:
+  //
+  //  0: --
+  //  1: --
+  //  2: --
+  //  3: |||||||||||||||||||| (66.67%)
+  //  4: |||||||||| (33.33%)
+  //  5: --
+  //
+  // Minimum Hamming distance: 3
+  // Maximum Hamming distance: 4
+  // Minimum Hamming weight: 1
+  // Maximum Hamming weight: 4
+  //
+  localparam int StateMaskOpWidth = 5;
+  typedef enum logic [StateMaskOpWidth-1:0] {
+    SecAdd      = 5'b10000,
+    SecAddMod   = 5'b00111,
+    ArithToBool = 5'b11011,
+    BoolToArith = 5'b01100
+  } state_mask_op_e;
+
   // Error bits
   //
   // Note: These errors are duplicated in other places. If updating them here, update those too.

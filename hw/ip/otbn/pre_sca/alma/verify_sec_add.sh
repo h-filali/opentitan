@@ -7,14 +7,21 @@
 
 set -e
 
+# Ensure the Alma virtualenv's packages are found regardless of PYTHONPATH
+# overrides from the calling environment (e.g. nix develop).
+ALMA_SITE_PACKAGES="${HOME}/alma/dev/lib/python3.10/site-packages"
+export PYTHONPATH="${ALMA_SITE_PACKAGES}${PYTHONPATH:+:${PYTHONPATH}}"
+
 # Argument parsing
 TARGET_TYPE="${1:-mask_accelerator}"
 case "$TARGET_TYPE" in
+  test)    export TOP_MODULE=otbn_sec_add_sca_test_wrapper ;;
   hpc2)    export TOP_MODULE=prim_hpc2_sca_wrapper ;;
   hpc2o)   export TOP_MODULE=prim_hpc2o_sca_wrapper ;;
   hpc3)    export TOP_MODULE=prim_hpc3_sca_wrapper ;;
   hpc3o)   export TOP_MODULE=prim_hpc3o_sca_wrapper ;;
-  *)       export TOP_MODULE=prim_hpc3o_sca_wrapper ;;
+  sec_add) export TOP_MODULE=otbn_sec_add_sca_wrapper ;;
+  *)       export TOP_MODULE=otbn_mask_accelerator_sca_wrapper ;;
 esac
 
 TESTBENCH=${TOP_MODULE}
@@ -28,7 +35,9 @@ echo "Verifying ${TOP_MODULE} using Alma"
 
 # Label
 sed -i 's/\(share0_i\s\[\)\([0-9]\+:0\)\(\]\s=\s\)unimportant/\1\2\3secret \2/g' tmp/labels.txt
+sed -i 's/\(share0_i\s=\s\)unimportant/\1secret 0:0/g' tmp/labels.txt
 sed -i 's/\(share1_i\s\[\)\([0-9]\+:0\)\(\]\s=\s\)unimportant/\1\2\3secret \2/g' tmp/labels.txt
+sed -i 's/\(share1_i\s=\s\)unimportant/\1secret 0:0/g' tmp/labels.txt
 sed -i 's/\(rand_i\(\s\[[0-9]\+:0\]\)\?\s=\s\)unimportant/\1random/g' tmp/labels.txt
 
 # Trace
@@ -44,4 +53,4 @@ sed -i 's/\(rand_i\(\s\[[0-9]\+:0\]\)\?\s=\s\)unimportant/\1random/g' tmp/labels
   --probe-duration once \
   --mode transient \
   --glitch-behavior strict \
-  --cycles 7
+  --cycles 25

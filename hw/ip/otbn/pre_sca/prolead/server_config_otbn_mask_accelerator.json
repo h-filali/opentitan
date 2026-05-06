@@ -1,0 +1,169 @@
+{
+  "_comment": "Copyright lowRISC contributors (OpenTitan project). Licensed under the Apache License, Version 2.0, see LICENSE for details. SPDX-License-Identifier: Apache-2.0",
+  "performance": {
+    "max_number_of_threads": "half",
+    "minimize_probing_sets": "aggressive"
+  },
+  "simulation": {
+    "groups": [
+      "512'h$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",
+      "512'h00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    ],
+    "number_of_clock_cycles": 25,
+    "always_random_inputs": [
+      "rand_i[321:0]",
+      "masks_i[63:0]"
+    ],
+    "input_sequence": [
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b0"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[63:0]",      "value": "64'h0000000000000000" },
+          { "name": "b_i[63:0]",      "value": "64'h0000000000000000" }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b0"                 },
+          { "name": "wvalid_i",       "value": "1'b0"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[63:0]",      "value": "64'h0000000000000000" },
+          { "name": "b_i[63:0]",      "value": "64'h0000000000000000" }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b1"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[31:0]",      "value": "group_in0[31:0]"      },
+          { "name": "a_i[63:32]",     "value": "group_in1[31:0]"      },
+          { "name": "b_i[31:0]",      "value": "group_in0[63:32]"     },
+          { "name": "b_i[63:32]",     "value": "group_in1[63:32]"     }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b1"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[31:0]",      "value": "group_in0[95:64]"     },
+          { "name": "a_i[63:32]",     "value": "group_in1[95:64]"     },
+          { "name": "b_i[31:0]",      "value": "group_in0[127:96]"    },
+          { "name": "b_i[63:32]",     "value": "group_in1[127:96]"    }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b1"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[31:0]",      "value": "group_in0[159:128]"   },
+          { "name": "a_i[63:32]",     "value": "group_in1[159:128]"   },
+          { "name": "b_i[31:0]",      "value": "group_in0[191:160]"   },
+          { "name": "b_i[63:32]",     "value": "group_in1[191:160]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b1"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[31:0]",      "value": "group_in0[223:192]"   },
+          { "name": "a_i[63:32]",     "value": "group_in1[223:192]"   },
+          { "name": "b_i[31:0]",      "value": "group_in0[255:224]"   },
+          { "name": "b_i[63:32]",     "value": "group_in1[255:224]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b1"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[31:0]",      "value": "group_in0[287:256]"   },
+          { "name": "a_i[63:32]",     "value": "group_in1[287:256]"   },
+          { "name": "b_i[31:0]",      "value": "group_in0[319:288]"   },
+          { "name": "b_i[63:32]",     "value": "group_in1[319:288]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b1"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[31:0]",      "value": "group_in0[351:320]"   },
+          { "name": "a_i[63:32]",     "value": "group_in1[351:320]"   },
+          { "name": "b_i[31:0]",      "value": "group_in0[383:352]"   },
+          { "name": "b_i[63:32]",     "value": "group_in1[383:352]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b1"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[31:0]",      "value": "group_in0[415:384]"   },
+          { "name": "a_i[63:32]",     "value": "group_in1[415:384]"   },
+          { "name": "b_i[31:0]",      "value": "group_in0[447:416]"   },
+          { "name": "b_i[63:32]",     "value": "group_in1[447:416]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b1"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[31:0]",      "value": "group_in0[479:448]"   },
+          { "name": "a_i[63:32]",     "value": "group_in1[479:448]"   },
+          { "name": "b_i[31:0]",      "value": "group_in0[511:480]"   },
+          { "name": "b_i[63:32]",     "value": "group_in1[511:480]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",         "value": "1'b1"                 },
+          { "name": "wvalid_i",       "value": "1'b0"                 },
+          { "name": "rready_i",       "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]", "value": "5'h0C"                },
+          { "name": "q_i[31:0]",      "value": "32'h00000000"         },
+          { "name": "a_i[63:0]",      "value": "64'h0000000000000000" },
+          { "name": "b_i[63:0]",      "value": "64'h0000000000000000" }
+        ]
+      }
+    ],
+    "number_of_simulations": 1536000,
+    "number_of_simulations_per_step": 128000
+  },
+  "hardware": {
+    "clock_signal_name": "clk_i"
+  },
+  "side_channel_analysis": {
+    "order": 1,
+    "transitional_leakage": true,
+    "clock_cycles": [
+      "3-25"
+    ]
+  }
+}

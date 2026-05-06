@@ -20,9 +20,15 @@ case "$1" in
   hpc3o)
     TOP_MODULE=prim_hpc3o_sca_wrapper
     ;;
+  sec_add)
+    TOP_MODULE=otbn_sec_add_sca_wrapper
+    ;;
+  mask_acc_prolead)
+    TOP_MODULE=otbn_mask_accelerator
+    ;;
   *)
     # Default case.
-    TOP_MODULE=otbn_hpc3o_sca_wrapper
+    TOP_MODULE=otbn_mask_accelerator_sca_wrapper
     ;;
 esac
 if [[ "$#" -gt 1 ]]; then
@@ -45,7 +51,13 @@ echo ${CONFIG_SRC}
 
 # Strip the _comment key (PROLEAD validates all JSON keys strictly).
 CONFIG_TMP=$(mktemp --suffix=.json)
-jq 'del(._comment)' "${CONFIG_SRC}" > "${CONFIG_TMP}"
+python3 -c "
+import json, sys
+with open(sys.argv[1]) as f:
+    d = json.load(f)
+d.pop('_comment', None)
+print(json.dumps(d, indent=2))
+" "${CONFIG_SRC}" > "${CONFIG_TMP}"
 
 # Launch the tool.
 PROLEAD -l ${REPO_TOP}/hw/ip/otbn/pre_sca/prolead/nang45.json \

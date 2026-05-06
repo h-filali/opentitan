@@ -44,8 +44,16 @@ ln -s "${LR_SYNTH_OUT_DIR#syn_out/}" syn_out/latest
 export LR_SYNTH_SRC_DIR="../../$LR_SYNTH_IP_NAME"
 
 # Get OpenTitan dependency sources.
-OT_DEP_SOURCES=(
-    "$LR_SYNTH_SRC_DIR"/pre_sca/rtl/${LR_SYNTH_TOP_MODULE}.sv
+OT_DEP_SOURCES=()
+# Include the pre-SCA wrapper only when one exists for this target.
+_pre_sca_wrapper="$LR_SYNTH_SRC_DIR/pre_sca/rtl/${LR_SYNTH_TOP_MODULE}.sv"
+if [ -f "$_pre_sca_wrapper" ]; then
+    OT_DEP_SOURCES+=("$_pre_sca_wrapper")
+fi
+OT_DEP_SOURCES+=(
+    # "$LR_SYNTH_SRC_DIR"/rtl/otbn_mask_accelerator.sv
+    # "$LR_SYNTH_SRC_DIR"/rtl/otbn_sec_add_mod.sv
+    # "$LR_SYNTH_SRC_DIR"/rtl/otbn_sec_add.sv
     "$LR_SYNTH_SRC_DIR"/../prim/rtl/prim_blanker.sv
     "$LR_SYNTH_SRC_DIR"/../prim/rtl/prim_fifo_sync.sv
     "$LR_SYNTH_SRC_DIR"/../prim/rtl/prim_fifo_sync_cnt.sv
@@ -96,6 +104,10 @@ for file in "${OT_DEP_SOURCES[@]}"; do
     sed -i '/$value$plusargs(.*/d' $LR_SYNTH_OUT_DIR/generated/${module}.v
 done
 
+# Rename the prim_sparse_fsm_flop module. For some reason, sv2v decides to append a suffix.
+# sed -i 's/module prim_sparse_fsm_flop_.*/module prim_sparse_fsm_flop \(/g' \
+#     $LR_SYNTH_OUT_DIR/generated/prim_sparse_fsm_flop.v
+
 # Get and convert core sources.
 for file in "$LR_SYNTH_SRC_DIR"/rtl/*.sv; do
     module=`basename -s .sv $file`
@@ -112,6 +124,10 @@ for file in "$LR_SYNTH_SRC_DIR"/rtl/*.sv; do
         -I"$LR_SYNTH_SRC_DIR"/../prim/rtl \
         $file \
         > "$LR_SYNTH_OUT_DIR/generated/${module}.v"
+
+    # Rename prim_sparse_fsm_flop instances. For some reason, sv2v decides to append a suffix.
+    # sed -i 's/prim_sparse_fsm_flop_.*/prim_sparse_fsm_flop \#(/g' \
+    #     $LR_SYNTH_OUT_DIR/generated/${module}.v
 
 done
 

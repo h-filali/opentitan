@@ -1,0 +1,521 @@
+{
+    "placed_probes": [
+        "_00_(3)",
+        "_01_(3)",
+        "_02_(3)",
+        "_05_(3)",
+        "_06_(3)",
+        "_09_(3)",
+        "_10_(3)",
+        "_12_(3)",
+        "_15_(3)",
+        "_16_(3)",
+        "_19_(3)",
+        "_20_(3)",
+        "_23_(3)",
+        "_24_(3)",
+        "_11_(3)",
+        "_17_(3)",
+        "_18_(3)",
+        "_03_(3)",
+        "_04_(3)",
+        "_07_(3)",
+        "_08_(3)",
+        "_21_(3)",
+        "_22_(3)",
+        "_13_(3)",
+        "_14_(3)",
+        "_00_(4)",
+        "_01_(4)",
+        "_02_(4)",
+        "_05_(4)",
+        "_06_(4)",
+        "_09_(4)",
+        "_10_(4)",
+        "_12_(4)",
+        "_15_(4)",
+        "_16_(4)",
+        "_19_(4)",
+        "_20_(4)",
+        "_23_(4)",
+        "_24_(4)",
+        "_11_(4)",
+        "_17_(4)",
+        "_18_(4)",
+        "_03_(4)",
+        "_04_(4)",
+        "_07_(4)",
+        "_08_(4)",
+        "_21_(4)",
+        "_22_(4)",
+        "_13_(4)",
+        "_14_(4)",
+        "_00_(5)",
+        "_01_(5)",
+        "_02_(5)",
+        "_05_(5)",
+        "_06_(5)",
+        "_09_(5)",
+        "_10_(5)",
+        "_12_(5)",
+        "_15_(5)",
+        "_16_(5)",
+        "_19_(5)",
+        "_20_(5)",
+        "_23_(5)",
+        "_24_(5)",
+        "_11_(5)",
+        "_17_(5)",
+        "_18_(5)",
+        "_03_(5)",
+        "_04_(5)",
+        "_07_(5)",
+        "_08_(5)",
+        "_21_(5)",
+        "_22_(5)",
+        "_13_(5)",
+        "_14_(5)",
+        "_00_(6)",
+        "_01_(6)",
+        "_02_(6)",
+        "_05_(6)",
+        "_06_(6)",
+        "_09_(6)",
+        "_10_(6)",
+        "_12_(6)",
+        "_15_(6)",
+        "_16_(6)",
+        "_19_(6)",
+        "_20_(6)",
+        "_23_(6)",
+        "_24_(6)",
+        "_11_(6)",
+        "_17_(6)",
+        "_18_(6)",
+        "_03_(6)",
+        "_04_(6)",
+        "_07_(6)",
+        "_08_(6)",
+        "_21_(6)",
+        "_22_(6)",
+        "_13_(6)",
+        "_14_(6)",
+        "_00_(7)",
+        "_01_(7)",
+        "_02_(7)",
+        "_05_(7)",
+        "_06_(7)",
+        "_09_(7)",
+        "_10_(7)",
+        "_12_(7)",
+        "_15_(7)",
+        "_16_(7)",
+        "_19_(7)",
+        "_20_(7)",
+        "_23_(7)",
+        "_24_(7)",
+        "_11_(7)",
+        "_17_(7)",
+        "_18_(7)",
+        "_03_(7)",
+        "_04_(7)",
+        "_07_(7)",
+        "_08_(7)",
+        "_21_(7)",
+        "_22_(7)",
+        "_13_(7)",
+        "_14_(7)"
+    ],
+    "extended_probes": [
+        "en_i(2)",
+        "rand_i(2)",
+        "share0_i[1](2)",
+        "share1_i[1](2)",
+        "_00_(2)",
+        "_01_(2)",
+        "_02_(2)",
+        "_05_(2)",
+        "_06_(2)",
+        "_09_(2)",
+        "_10_(2)",
+        "_12_(2)",
+        "_15_(2)",
+        "_16_(2)",
+        "_19_(2)",
+        "_20_(2)",
+        "_23_(2)",
+        "_24_(2)",
+        "\\u_prim_flop_en.q_o[0](2)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0](2)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in1_i[0](2)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0](2)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in1_i[0](2)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.in1_i[0](2)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0](2)",
+        "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.in1_i[0](2)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in0_i[0](2)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in1_i[0](2)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.in1_i[0](2)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in0_i[0](2)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in1_i[0](2)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.in1_i[0](2)",
+        "en_i(3)",
+        "rand_i(3)",
+        "share0_i[1](3)",
+        "share1_i[1](3)",
+        "_00_(3)",
+        "_01_(3)",
+        "_02_(3)",
+        "_05_(3)",
+        "_06_(3)",
+        "_09_(3)",
+        "_10_(3)",
+        "_12_(3)",
+        "_15_(3)",
+        "_16_(3)",
+        "_19_(3)",
+        "_20_(3)",
+        "_23_(3)",
+        "_24_(3)",
+        "\\u_prim_flop_en.q_o[0](3)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0](3)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in1_i[0](3)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0](3)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in1_i[0](3)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.in1_i[0](3)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0](3)",
+        "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.in1_i[0](3)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in0_i[0](3)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in1_i[0](3)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.in1_i[0](3)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in0_i[0](3)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in1_i[0](3)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.in1_i[0](3)",
+        "en_i(4)",
+        "rand_i(4)",
+        "share0_i[1](4)",
+        "share1_i[1](4)",
+        "_00_(4)",
+        "_01_(4)",
+        "_02_(4)",
+        "_05_(4)",
+        "_06_(4)",
+        "_09_(4)",
+        "_10_(4)",
+        "_12_(4)",
+        "_15_(4)",
+        "_16_(4)",
+        "_19_(4)",
+        "_20_(4)",
+        "_23_(4)",
+        "_24_(4)",
+        "\\u_prim_flop_en.q_o[0](4)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0](4)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in1_i[0](4)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0](4)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in1_i[0](4)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.in1_i[0](4)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0](4)",
+        "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.in1_i[0](4)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in0_i[0](4)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in1_i[0](4)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.in1_i[0](4)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in0_i[0](4)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in1_i[0](4)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.in1_i[0](4)",
+        "en_i(5)",
+        "rand_i(5)",
+        "share0_i[1](5)",
+        "share1_i[1](5)",
+        "_00_(5)",
+        "_01_(5)",
+        "_02_(5)",
+        "_05_(5)",
+        "_06_(5)",
+        "_09_(5)",
+        "_10_(5)",
+        "_12_(5)",
+        "_15_(5)",
+        "_16_(5)",
+        "_19_(5)",
+        "_20_(5)",
+        "_23_(5)",
+        "_24_(5)",
+        "\\u_prim_flop_en.q_o[0](5)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0](5)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in1_i[0](5)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0](5)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in1_i[0](5)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.in1_i[0](5)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0](5)",
+        "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.in1_i[0](5)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in0_i[0](5)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in1_i[0](5)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.in1_i[0](5)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in0_i[0](5)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in1_i[0](5)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.in1_i[0](5)",
+        "en_i(6)",
+        "rand_i(6)",
+        "share0_i[1](6)",
+        "share1_i[1](6)",
+        "_00_(6)",
+        "_01_(6)",
+        "_02_(6)",
+        "_05_(6)",
+        "_06_(6)",
+        "_09_(6)",
+        "_10_(6)",
+        "_12_(6)",
+        "_15_(6)",
+        "_16_(6)",
+        "_19_(6)",
+        "_20_(6)",
+        "_23_(6)",
+        "_24_(6)",
+        "\\u_prim_flop_en.q_o[0](6)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0](6)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in1_i[0](6)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0](6)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in1_i[0](6)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.in1_i[0](6)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0](6)",
+        "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.in1_i[0](6)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in0_i[0](6)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in1_i[0](6)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.in1_i[0](6)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in0_i[0](6)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in1_i[0](6)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.in1_i[0](6)",
+        "en_i(7)",
+        "rand_i(7)",
+        "share0_i[1](7)",
+        "share1_i[1](7)",
+        "_00_(7)",
+        "_01_(7)",
+        "_02_(7)",
+        "_05_(7)",
+        "_06_(7)",
+        "_09_(7)",
+        "_10_(7)",
+        "_12_(7)",
+        "_15_(7)",
+        "_16_(7)",
+        "_19_(7)",
+        "_20_(7)",
+        "_23_(7)",
+        "_24_(7)",
+        "\\u_prim_flop_en.q_o[0](7)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0](7)",
+        "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in1_i[0](7)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0](7)",
+        "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in1_i[0](7)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.in1_i[0](7)",
+        "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0](7)",
+        "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.in1_i[0](7)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in0_i[0](7)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in1_i[0](7)",
+        "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.in1_i[0](7)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in0_i[0](7)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in1_i[0](7)",
+        "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.in1_i[0](7)"
+    ],
+    "extensions": [
+        {
+            "signals": "_11_",
+            "glitch_extension": [
+                "en_i",
+                "rand_i",
+                "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "_17_",
+            "glitch_extension": [
+                "en_i",
+                "share0_i[1]",
+                "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "_18_",
+            "glitch_extension": [
+                "en_i",
+                "share1_i[1]",
+                "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0]",
+                "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0]",
+                "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0]",
+                "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in0_i[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in0_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0]",
+                "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2_x_masked.in0_i[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in0_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_y_masked[0].u_prim_xor2.out_o[0]",
+            "glitch_extension": [
+                "rand_i",
+                "share0_i[1]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_y_masked[1].u_prim_xor2.out_o[0]",
+            "glitch_extension": [
+                "rand_i",
+                "share1_i[1]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in0_i[0]",
+                "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in0_i[0]",
+                "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in1_i[0]"
+            ]
+        },
+        {
+            "signals": "_03_",
+            "glitch_extension": [
+                "\\u_prim_flop_en.q_o[0]",
+                "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in0_i[0]",
+                "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.out_o[0]"
+            ]
+        },
+        {
+            "signals": "_04_",
+            "glitch_extension": [
+                "\\u_prim_flop_en.q_o[0]",
+                "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in0_i[0]",
+                "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.out_o[0]"
+            ]
+        },
+        {
+            "signals": "_07_",
+            "glitch_extension": [
+                "\\u_prim_flop_en.q_o[0]",
+                "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.in1_i[0]",
+                "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2.out_o[0]"
+            ]
+        },
+        {
+            "signals": "_08_",
+            "glitch_extension": [
+                "\\u_prim_flop_en.q_o[0]",
+                "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.in1_i[0]",
+                "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2.out_o[0]"
+            ]
+        },
+        {
+            "signals": "_21_",
+            "glitch_extension": [
+                "en_i",
+                "\\u_prim_hpc2.gen_cross_prod[1].u_prim_and2.in1_i[0]",
+                "\\u_prim_hpc2.gen_y_masked[0].u_prim_xor2.out_o[0]"
+            ]
+        },
+        {
+            "signals": "_22_",
+            "glitch_extension": [
+                "en_i",
+                "\\u_prim_hpc2.gen_cross_prod[0].u_prim_and2.in1_i[0]",
+                "\\u_prim_hpc2.gen_y_masked[1].u_prim_xor2.out_o[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0]",
+                "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in0_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2_x_masked.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.in1_i[0]",
+                "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2_x_masked.in0_i[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.in1_i[0]",
+                "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.out_o[0]"
+            ]
+        },
+        {
+            "signals": "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.out_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.in1_i[0]",
+                "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.out_o[0]"
+            ]
+        },
+        {
+            "signals": "sum_o[1]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_z[1].u_prim_xor2_output.out_o[0]"
+            ]
+        },
+        {
+            "signals": "sum_o[0]",
+            "glitch_extension": [
+                "\\u_prim_hpc2.gen_z[0].u_prim_xor2_output.out_o[0]"
+            ]
+        },
+        {
+            "signals": "_13_",
+            "glitch_extension": [
+                "\\u_prim_flop_en.q_o[0]",
+                "\\u_prim_hpc2.gen_z[0].u_prim_xor2_merge_cross.in1_i[0]",
+                "\\u_prim_hpc2.gen_xy_masked[0].u_prim_and2_x_masked.out_o[0]"
+            ]
+        },
+        {
+            "signals": "_14_",
+            "glitch_extension": [
+                "\\u_prim_flop_en.q_o[0]",
+                "\\u_prim_hpc2.gen_z[1].u_prim_xor2_merge_cross.in1_i[0]",
+                "\\u_prim_hpc2.gen_xy_masked[1].u_prim_and2_x_masked.out_o[0]"
+            ]
+        }
+    ]
+}
