@@ -5,11 +5,10 @@
 // First-order masked modular adder: computes inp1 + inp2 mod modulus on two Width-bit Boolean
 // sharings, producing a Width-bit Boolean sharing result_o.
 //
-// When enable_mod_i is high the inputs must satisfy:
-//   (inp1_i[0] ^ inp1_i[1]) + (inp2_i[0] ^ inp2_i[1]) = inp1 + inp2 + (pow(2, Width) - modulus)
-// with inp1 + inp2 < 2*modulus, so that a single pass-2 correction step produces the correct
-// result. The (pow(2, Width) - modulus) offset must be pre-subtracted and embedded in the input
-// share encodings before the inputs are presented.
+// When enable_mod_i is high the inputs must have the modulus pre-subtracted. This means that if a
+// modular addition of the sharings of the unmasked values a + b should be computed, the
+// unmasked value inp_1, inp_2 of the actual sharings must satisfy:
+//   inp1 + inp2 = a + b + (pow(2, Width) - modulus)
 //
 // When enable_mod_i is low the modular reduction is skipped and the raw pass-1 result is returned
 // directly. Hence, no pre-subtraction of the modulus is needed.
@@ -83,6 +82,7 @@ module otbn_sec_add_mod
   // Output signals.
   output logic [NumShares-1:0][Width-1:0] result_o,
   output logic                            rvalid_o,
+  output logic                            batch_complete_o,
   output logic                            ctr_err_o
 );
 
@@ -233,8 +233,12 @@ module otbn_sec_add_mod
   assign mod_correction[1] = add_mod[1] ? modulus_i : '0;
 
   // Set the handshake signals.
-  assign rvalid_o = route_sec_add_result_out && sec_add_oup_valid;
-  assign wready_o = !mux_state_q[0];
+  assign rvalid_o        = route_sec_add_result_out && sec_add_oup_valid;
+  assign wready_o        = !mux_state_q[0];
+  // Fires on the cycle the last adder input of a batch is presented. Used by
+  // the mask_accelerator to block a spurious extra acceptance in A2B/B2A mode
+  // where the input register stage delays the adder's wready response by 1 cycle.
+  assign batch_complete_o = vector_inserted_pulse;
 
   // Blank the otbn_sec_add_mod sum output.
   prim_blanker #(

@@ -1,0 +1,141 @@
+{
+  "_comment": "Copyright lowRISC contributors (OpenTitan project). Licensed under the Apache License, Version 2.0, see LICENSE for details. SPDX-License-Identifier: Apache-2.0",
+  "performance": {
+    "max_number_of_threads": "all",
+    "minimize_probing_sets": "aggressive"
+  },
+  "simulation": {
+    "groups": [
+      "512'h$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",
+      "512'h00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    ],
+    "number_of_clock_cycles": 25,
+    "always_random_inputs": [
+      "rand_i[385:0]"
+    ],
+    "input_sequence": [
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b0"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "64'h0000000000000000" },
+          { "name": "share1_i[63:0]",  "value": "64'h0000000000000000" }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b0"                 },
+          { "name": "wvalid_i",        "value": "1'b0"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "64'h0000000000000000" },
+          { "name": "share1_i[63:0]",  "value": "64'h0000000000000000" }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "group_in0[63:0]"      },
+          { "name": "share1_i[63:0]",  "value": "group_in1[63:0]"      }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "group_in0[127:64]"    },
+          { "name": "share1_i[63:0]",  "value": "group_in1[127:64]"    }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "group_in0[191:128]"   },
+          { "name": "share1_i[63:0]",  "value": "group_in1[191:128]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "group_in0[255:192]"   },
+          { "name": "share1_i[63:0]",  "value": "group_in1[255:192]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "group_in0[319:256]"   },
+          { "name": "share1_i[63:0]",  "value": "group_in1[319:256]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "group_in0[383:320]"   },
+          { "name": "share1_i[63:0]",  "value": "group_in1[383:320]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "group_in0[447:384]"   },
+          { "name": "share1_i[63:0]",  "value": "group_in1[447:384]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b1"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "group_in0[511:448]"   },
+          { "name": "share1_i[63:0]",  "value": "group_in1[511:448]"   }
+        ]
+      },
+      {
+        "signals": [
+          { "name": "rst_ni",          "value": "1'b1"                 },
+          { "name": "wvalid_i",        "value": "1'b0"                 },
+          { "name": "mask_op_i[4:0]",  "value": "5'h0C"                },
+          { "name": "mod_i[31:0]",     "value": "32'hFFFFFFFF"         },
+          { "name": "share0_i[63:0]",  "value": "64'h0000000000000000" },
+          { "name": "share1_i[63:0]",  "value": "64'h0000000000000000" }
+        ]
+      }
+    ],
+    "number_of_simulations": 1600000,
+    "number_of_simulations_per_step": 8000
+  },
+  "hardware": {
+    "clock_signal_name": "clk_i"
+  },
+  "side_channel_analysis": {
+    "order": 1,
+    "transitional_leakage": true,
+    "clock_cycles": [
+      "3-25"
+    ]
+  }
+}
