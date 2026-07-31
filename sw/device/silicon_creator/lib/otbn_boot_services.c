@@ -29,6 +29,16 @@ OTBN_DECLARE_SYMBOL_ADDR(boot, x_r);   // ECDSA verification result.
 OTBN_DECLARE_SYMBOL_ADDR(boot, ok);    // ECDSA verification status.
 OTBN_DECLARE_SYMBOL_ADDR(
     boot, attestation_additional_seed);  // Additional seed for ECDSA keygen.
+OTBN_DECLARE_SYMBOL_ADDR(boot, mldsa87_verify_pk_rho); // ML-DSA-87 pk `rho`.
+OTBN_DECLARE_SYMBOL_ADDR(boot, mldsa87_verify_pk_t1);  // ML-DSA-87 pk `t1`.
+OTBN_DECLARE_SYMBOL_ADDR(boot,
+                         mldsa87_verify_sig_c_tilde);  // Sig `c_tilde`.
+OTBN_DECLARE_SYMBOL_ADDR(boot, mldsa87_verify_sig_z);  // Sig `z`.
+OTBN_DECLARE_SYMBOL_ADDR(boot, mldsa87_verify_sig_h);  // Sig `h` (hint).
+OTBN_DECLARE_SYMBOL_ADDR(boot, mldsa87_verify_mu);     // Message rep. `mu`.
+OTBN_DECLARE_SYMBOL_ADDR(boot, mldsa87_verify_res_ok); // Verify status.
+OTBN_DECLARE_SYMBOL_ADDR(
+    boot, mldsa87_verify_res_c_tilde_prime);  // Recovered `c_tilde`.
 
 static const sc_otbn_app_t kOtbnAppBoot = OTBN_APP_T_INIT(boot);
 static const sc_otbn_addr_t kOtbnVarBootMode = OTBN_ADDR_T_INIT(boot, mode);
@@ -41,6 +51,22 @@ static const sc_otbn_addr_t kOtbnVarBootXr = OTBN_ADDR_T_INIT(boot, x_r);
 static const sc_otbn_addr_t kOtbnVarBootOk = OTBN_ADDR_T_INIT(boot, ok);
 static const sc_otbn_addr_t kOtbnVarBootAttestationAdditionalSeed =
     OTBN_ADDR_T_INIT(boot, attestation_additional_seed);
+static const sc_otbn_addr_t kOtbnVarBootMldsa87VerifyPkRho =
+    OTBN_ADDR_T_INIT(boot, mldsa87_verify_pk_rho);
+static const sc_otbn_addr_t kOtbnVarBootMldsa87VerifyPkT1 =
+    OTBN_ADDR_T_INIT(boot, mldsa87_verify_pk_t1);
+static const sc_otbn_addr_t kOtbnVarBootMldsa87VerifySigCTilde =
+    OTBN_ADDR_T_INIT(boot, mldsa87_verify_sig_c_tilde);
+static const sc_otbn_addr_t kOtbnVarBootMldsa87VerifySigZ =
+    OTBN_ADDR_T_INIT(boot, mldsa87_verify_sig_z);
+static const sc_otbn_addr_t kOtbnVarBootMldsa87VerifySigH =
+    OTBN_ADDR_T_INIT(boot, mldsa87_verify_sig_h);
+static const sc_otbn_addr_t kOtbnVarBootMldsa87VerifyMu =
+    OTBN_ADDR_T_INIT(boot, mldsa87_verify_mu);
+static const sc_otbn_addr_t kOtbnVarBootMldsa87VerifyResOk =
+    OTBN_ADDR_T_INIT(boot, mldsa87_verify_res_ok);
+static const sc_otbn_addr_t kOtbnVarBootMldsa87VerifyResCTildePrime =
+    OTBN_ADDR_T_INIT(boot, mldsa87_verify_res_c_tilde_prime);
 
 enum {
   /*
@@ -71,13 +97,31 @@ enum {
    * Value taken from `boot.s`.
    */
   kOtbnBootModeAttestationKeySave = 0x64d,
+  /*
+   * Mode to run ML-DSA-87 signature verification.
+   *
+   * Value taken from `boot.s`.
+   */
+  kOtbnBootModeMldsa87Sigverify = 0x176,
   /* Size of the OTBN attestation seed buffer in 32-bit words (rounding the
      attestation seed size up to the next OTBN wide word). */
   kOtbnAttestationSeedBufferWords =
       ((kAttestationSeedWords + kScOtbnWideWordNumWords - 1) /
        kScOtbnWideWordNumWords) *
       kScOtbnWideWordNumWords,
+  /*
+   * Size, in 32-bit words, reserved in OTBN DMEM for the ML-DSA-87
+   * signature's `h` (hint) component. `h` itself is only
+   * `kSigverifyMldsaSigHBytes` (83) bytes, but `boot.s` reserves 96 bytes
+   * (83 bytes of `h` plus 13 bytes of alignment padding) for it; the padding
+   * must be written with zeros to avoid a DMEM integrity error.
+   */
+  kOtbnMldsa87VerifySigHWords = 96 / sizeof(uint32_t),
 };
+
+static_assert(kOtbnMldsa87VerifySigHWords * sizeof(uint32_t) >=
+                  kSigverifyMldsaSigHBytes,
+              "Reserved DMEM space for `h` must fit its real size.");
 
 rom_error_t otbn_boot_app_load(void) { return sc_otbn_load_app(kOtbnAppBoot); }
 
@@ -319,4 +363,72 @@ rom_error_t otbn_boot_sigverify(const ecdsa_p256_public_key_t *key,
                                 uint32_t *recovered_r) {
   HARDENED_RETURN_IF_ERROR(otbn_boot_sigverify_start(key, sig, digest));
   return otbn_boot_sigverify_finish(recovered_r);
+}
+
+rom_error_t otbn_boot_mldsa87_verify_start(
+    const sigverify_mldsa_key_t *key, const sigverify_mldsa_signature_t *sig,
+    const sigverify_mldsa_mu_t *mu) {
+  // Write the mode.
+  uint32_t mode = kOtbnBootModeMldsa87Sigverify;
+  HARDENED_RETURN_IF_ERROR(
+      sc_otbn_dmem_write(kOtbnBootModeWords, &mode, kOtbnVarBootMode));
+
+  // Write the public key.
+  HARDENED_RETURN_IF_ERROR(sc_otbn_dmem_write(
+      ARRAYSIZE(key->rho), key->rho, kOtbnVarBootMldsa87VerifyPkRho));
+  HARDENED_RETURN_IF_ERROR(sc_otbn_dmem_write(
+      ARRAYSIZE(key->t1), key->t1, kOtbnVarBootMldsa87VerifyPkT1));
+
+  // Write the signature.
+  HARDENED_RETURN_IF_ERROR(
+      sc_otbn_dmem_write(ARRAYSIZE(sig->c_tilde), sig->c_tilde,
+                         kOtbnVarBootMldsa87VerifySigCTilde));
+  HARDENED_RETURN_IF_ERROR(sc_otbn_dmem_write(ARRAYSIZE(sig->z), sig->z,
+                                              kOtbnVarBootMldsa87VerifySigZ));
+  // `h` is not a whole number of words and `boot.s` reserves more space for
+  // it than its real size, copy it into a zero-padded local buffer first to
+  // avoid an out-of-bounds read on `sig->h` and a DMEM integrity error on the
+  // unwritten padding.
+  uint32_t h_buf[kOtbnMldsa87VerifySigHWords] = {0};
+  memcpy(h_buf, sig->h, kSigverifyMldsaSigHBytes);
+  HARDENED_RETURN_IF_ERROR(sc_otbn_dmem_write(
+      ARRAYSIZE(h_buf), h_buf, kOtbnVarBootMldsa87VerifySigH));
+
+  // Write the precomputed message representative.
+  HARDENED_RETURN_IF_ERROR(sc_otbn_dmem_write(
+      ARRAYSIZE(mu->data), mu->data, kOtbnVarBootMldsa87VerifyMu));
+
+  // Start the OTBN routine.
+  SEC_MMIO_WRITE_INCREMENT(kScOtbnSecMmioExecute);
+  return sc_otbn_execute_start();
+}
+
+rom_error_t otbn_boot_mldsa87_verify_finish(
+    uint32_t *recovered_c_tilde_prime) {
+  HARDENED_RETURN_IF_ERROR(sc_otbn_execute_finish());
+
+  // Check if the signature passed basic checks.
+  uint32_t ok;
+  HARDENED_RETURN_IF_ERROR(
+      sc_otbn_dmem_read(1, kOtbnVarBootMldsa87VerifyResOk, &ok));
+  if (launder32(ok) != kHardenedBoolTrue) {
+    return kErrorSigverifyBadMldsaSignature;
+  }
+
+  // Read the status value again as an extra hardening measure.
+  HARDENED_RETURN_IF_ERROR(
+      sc_otbn_dmem_read(1, kOtbnVarBootMldsa87VerifyResOk, &ok));
+  HARDENED_CHECK_EQ(ok, kHardenedBoolTrue);
+
+  // Clear the status in OTBN.
+  uint32_t zero = 0;
+  HARDENED_RETURN_IF_ERROR(
+      sc_otbn_dmem_write(1, &zero, kOtbnVarBootMldsa87VerifyResOk));
+
+  // Read the recovered `c_tilde` value from DMEM. Note: the final comparison
+  // against the provided signature is not performed on OTBN, the caller must
+  // do so.
+  return sc_otbn_dmem_read(kSigverifyMldsaSigCTildeBytes / sizeof(uint32_t),
+                           kOtbnVarBootMldsa87VerifyResCTildePrime,
+                           recovered_c_tilde_prime);
 }

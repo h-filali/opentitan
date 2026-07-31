@@ -12,6 +12,7 @@
 #include "sw/device/silicon_creator/lib/drivers/hmac.h"
 #include "sw/device/silicon_creator/lib/drivers/keymgr.h"
 #include "sw/device/silicon_creator/lib/sigverify/ecdsa_p256_key.h"
+#include "sw/device/silicon_creator/lib/sigverify/mldsa_key.h"
 #include "sw/device/silicon_creator/lib/sigverify/rsa_key.h"
 
 #ifdef __cplusplus
@@ -225,6 +226,34 @@ rom_error_t otbn_boot_sigverify_start(const ecdsa_p256_public_key_t *key,
  */
 OT_WARN_UNUSED_RESULT
 rom_error_t otbn_boot_sigverify_finish(uint32_t *recovered_r);
+
+/**
+ * Starts an ML-DSA-87 signature verification.
+ *
+ * Expects the OTBN boot-services program to already be loaded.
+ *
+ * @param key An ML-DSA-87 public key.
+ * @param sig An ML-DSA-87 signature.
+ * @param mu The precomputed ML-DSA-87 "mu" message representative.
+ * @return The result of the operation.
+ */
+OT_WARN_UNUSED_RESULT
+rom_error_t otbn_boot_mldsa87_verify_start(
+    const sigverify_mldsa_key_t *key, const sigverify_mldsa_signature_t *sig,
+    const sigverify_mldsa_mu_t *mu);
+
+/**
+ * Finishes an ML-DSA-87 signature verification.
+ *
+ * Call after the `start` operation to wait for completion and collect the
+ * result.
+ *
+ * @param[out] recovered_c_tilde_prime Buffer for the recovered `c_tilde`
+ * value (`kSigverifyMldsaSigCTildeBytes` bytes).
+ * @return The result of the operation.
+ */
+OT_WARN_UNUSED_RESULT
+rom_error_t otbn_boot_mldsa87_verify_finish(uint32_t *recovered_c_tilde_prime);
 
 #ifdef __cplusplus
 }  // extern "C"
