@@ -51,6 +51,12 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "mldsa_key",
+    srcs = ["mldsa_key.c"],
+    hdrs = ["mldsa_key.h"],
+)
+
 dual_cc_library(
     name = "mod_exp_ibex",
     srcs = dual_inputs(
