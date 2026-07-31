@@ -166,6 +166,22 @@ opentitan_test(
     ],
 )
 
+opentitan_test(
+    name = "mldsa_verify_functest",
+    srcs = ["mldsa_verify_functest.c"],
+    exec_env = dicts.add(
+        EARLGREY_TEST_ENVS,
+        {
+            "//hw/top_earlgrey:fpga_cw340_test_rom": None,
+        },
+    ),
+    deps = [
+        ":mldsa_verify",
+        "//sw/device/silicon_creator/lib:otbn_boot_services",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
 cc_library(
     name = "rsa_verify",
     srcs = ["rsa_verify.c"],
