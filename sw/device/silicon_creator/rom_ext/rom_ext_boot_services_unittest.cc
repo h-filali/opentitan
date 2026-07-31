@@ -250,6 +250,10 @@ TEST_F(RomExtBootServicesTest, BootSvcMinBl0SecVerValid) {
       .WillOnce(Return(kErrorManifestBadExtension));
   EXPECT_CALL(mock_manifest_, SpxSignature)
       .WillOnce(Return(kErrorManifestBadExtension));
+  EXPECT_CALL(mock_manifest_, MldsaKey)
+      .WillOnce(Return(kErrorManifestBadExtension));
+  EXPECT_CALL(mock_manifest_, MldsaSignature)
+      .WillOnce(Return(kErrorManifestBadExtension));
 
   EXPECT_CALL(mock_rnd_, Uint32);
   EXPECT_CALL(mock_hmac_, sha256_init);
@@ -270,6 +274,10 @@ TEST_F(RomExtBootServicesTest, BootSvcMinBl0SecVerValid) {
   EXPECT_CALL(mock_manifest_, SpxKey)
       .WillOnce(Return(kErrorManifestBadExtension));
   EXPECT_CALL(mock_manifest_, SpxSignature)
+      .WillOnce(Return(kErrorManifestBadExtension));
+  EXPECT_CALL(mock_manifest_, MldsaKey)
+      .WillOnce(Return(kErrorManifestBadExtension));
+  EXPECT_CALL(mock_manifest_, MldsaSignature)
       .WillOnce(Return(kErrorManifestBadExtension));
 
   EXPECT_CALL(mock_rnd_, Uint32);
@@ -406,6 +414,10 @@ TEST_F(RomExtBootServicesTest, BootSvcMinBl0SecVerInvalidHigh) {
       .WillOnce(Return(kErrorManifestBadExtension));
   EXPECT_CALL(mock_manifest_, SpxSignature)
       .WillOnce(Return(kErrorManifestBadExtension));
+  EXPECT_CALL(mock_manifest_, MldsaKey)
+      .WillOnce(Return(kErrorManifestBadExtension));
+  EXPECT_CALL(mock_manifest_, MldsaSignature)
+      .WillOnce(Return(kErrorManifestBadExtension));
 
   EXPECT_CALL(mock_rnd_, Uint32);
   EXPECT_CALL(mock_hmac_, sha256_init);
@@ -426,6 +438,10 @@ TEST_F(RomExtBootServicesTest, BootSvcMinBl0SecVerInvalidHigh) {
   EXPECT_CALL(mock_manifest_, SpxKey)
       .WillOnce(Return(kErrorManifestBadExtension));
   EXPECT_CALL(mock_manifest_, SpxSignature)
+      .WillOnce(Return(kErrorManifestBadExtension));
+  EXPECT_CALL(mock_manifest_, MldsaKey)
+      .WillOnce(Return(kErrorManifestBadExtension));
+  EXPECT_CALL(mock_manifest_, MldsaSignature)
       .WillOnce(Return(kErrorManifestBadExtension));
 
   EXPECT_CALL(mock_rnd_, Uint32);

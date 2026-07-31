@@ -4,6 +4,7 @@
 
 #include "sw/device/silicon_creator/rom_ext/rom_ext_verify.h"
 
+#include <stdbool.h>
 #include <string.h>
 
 #include "sw/device/silicon_creator/lib/base/boot_measurements.h"
@@ -16,6 +17,7 @@
 #include "sw/device/silicon_creator/lib/ownership/owner_block.h"
 #include "sw/device/silicon_creator/lib/ownership/owner_verify.h"
 #include "sw/device/silicon_creator/lib/sigverify/ecdsa_p256_key.h"
+#include "sw/device/silicon_creator/lib/sigverify/mldsa_verify.h"
 #include "sw/device/silicon_creator/lib/sigverify/usage_constraints.h"
 #include "sw/device/silicon_creator/rom_ext/rom_ext_boot_policy.h"
 
@@ -30,21 +32,58 @@ rom_error_t rom_ext_verify(const manifest_t *manifest, char slot_id,
   uint32_t key_id =
       sigverify_ecdsa_p256_key_id_get(&manifest->ecdsa_public_key);
   // Check if there is an SPX+ key.
-  const manifest_ext_spx_key_t *ext_spx_key;
-  const manifest_ext_spx_signature_t *ext_spx_signature;
+  const manifest_ext_spx_key_t *ext_spx_key = NULL;
+  const manifest_ext_spx_signature_t *ext_spx_signature = NULL;
   rom_error_t spx_err = manifest_ext_get_spx_key(manifest, &ext_spx_key);
   spx_err += manifest_ext_get_spx_signature(manifest, &ext_spx_signature);
+  bool has_spx;
   switch ((uint32_t)spx_err) {
     case kErrorOk * 2:
       // Both extensions present: valid SPX+ signature.
-      key_id ^= sigverify_spx_key_id_get(&ext_spx_key->key);
+      has_spx = true;
       break;
     case kErrorManifestBadExtension * 2:
-      // Both extensions absent: ECDSA only.
+      // Both extensions absent.
+      has_spx = false;
       break;
     default:
       // One present, one absent: bad configuration.
       return kErrorManifestBadExtension;
+  }
+
+  // Check if there is an ML-DSA-87 key.
+  const manifest_ext_mldsa_key_t *ext_mldsa_key = NULL;
+  const manifest_ext_mldsa_signature_t *ext_mldsa_signature = NULL;
+  rom_error_t mldsa_err = manifest_ext_get_mldsa_key(manifest, &ext_mldsa_key);
+  mldsa_err +=
+      manifest_ext_get_mldsa_signature(manifest, &ext_mldsa_signature);
+  bool has_mldsa;
+  switch ((uint32_t)mldsa_err) {
+    case kErrorOk * 2:
+      has_mldsa = true;
+      break;
+    case kErrorManifestBadExtension * 2:
+      has_mldsa = false;
+      break;
+    default:
+      return kErrorManifestBadExtension;
+  }
+
+  if (has_spx && has_mldsa) {
+    // A manifest may carry at most one hybrid-partner extension.
+    return kErrorManifestBadExtension;
+  }
+  // Computed once here (rather than recomputed later) since ML-DSA-87 keys
+  // are too large to store in full, so `owner_verify()` must separately
+  // validate this same digest against the owner-provisioned one, reusing it
+  // here avoids hashing the key twice.
+  uint32_t mldsa_key_digest[kSigverifyMldsaKeyDigestWords];
+  if (has_spx) {
+    key_id ^= sigverify_spx_key_id_get(&ext_spx_key->key);
+  } else if (has_mldsa) {
+    RETURN_IF_ERROR(
+        sigverify_mldsa_key_digest(&ext_mldsa_key->key, mldsa_key_digest));
+    key_id ^= mldsa_key_digest[0];
   }
 
   RETURN_IF_ERROR(owner_keyring_find_key(keyring, key_id, verify_key));
@@ -80,11 +119,17 @@ rom_error_t rom_ext_verify(const manifest_t *manifest, char slot_id,
                 "Unexpected BL0 digest size.");
   memcpy(&boot_measurements.bl0, &act_digest, sizeof(boot_measurements.bl0));
 
+  const sigverify_mldsa_signature_t *mldsa_signature =
+      ext_mldsa_signature != NULL ? &ext_mldsa_signature->signature : NULL;
+  const sigverify_mldsa_key_t *mldsa_full_key =
+      ext_mldsa_key != NULL ? &ext_mldsa_key->key : NULL;
+  const uint32_t *mldsa_full_key_digest = has_mldsa ? mldsa_key_digest : NULL;
   RETURN_IF_ERROR(owner_verify(
       key_alg, &keyring->key[*verify_key]->data, &manifest->ecdsa_signature,
-      &ext_spx_signature->signature, &usage_constraints_from_hw,
-      sizeof(usage_constraints_from_hw), NULL, 0, digest_region.start,
-      digest_region.length, &act_digest, flash_exec));
+      &ext_spx_signature->signature, mldsa_signature, mldsa_full_key,
+      mldsa_full_key_digest, &usage_constraints_from_hw,
+      sizeof(usage_constraints_from_hw), NULL, 0,
+      digest_region.start, digest_region.length, &act_digest, flash_exec));
 
   // Perform ISFB checks if the extension is present.
   if ((hardened_bool_t)owner_config->isfb != kHardenedBoolFalse) {
