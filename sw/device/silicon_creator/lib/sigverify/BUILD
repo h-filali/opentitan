@@ -11,6 +11,7 @@ load(
 load(
     "//rules/opentitan:defs.bzl",
     "EARLGREY_TEST_ENVS",
+    "OPENTITAN_CPU",
     "fpga_params",
     "opentitan_test",
     "qemu_params",
@@ -218,6 +219,26 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "mldsa_verify",
+    srcs = ["mldsa_verify.c"],
+    hdrs = ["mldsa_verify.h"],
+    # This target uses OTBN pointers internally (via otbn_boot_services), so
+    # it cannot work host-side.
+    target_compatible_with = [OPENTITAN_CPU],
+    deps = [
+        ":mldsa_key",
+        "//hw/top:otp_ctrl_c_regs",
+        "//sw/device/lib/base:hardened",
+        "//sw/device/lib/base:macros",
+        "//sw/device/silicon_creator/lib:error",
+        "//sw/device/silicon_creator/lib:otbn_boot_services",
+        "//sw/device/silicon_creator/lib/drivers:kmac",
+        "//sw/device/silicon_creator/lib/drivers:lifecycle",
+        "//sw/device/silicon_creator/lib/drivers:otp",
+    ],
+)
+
 opentitan_test(
     name = "spx_verify_functest",
     srcs = ["spx_verify_functest.c"],
@@ -272,6 +293,7 @@ cc_library(
     deps = [
         ":ecdsa_p256_verify",
         ":flash_exec",
+        ":mldsa_verify",
         ":rsa_verify",
         ":spx_verify",
         ":usage_constraints",
