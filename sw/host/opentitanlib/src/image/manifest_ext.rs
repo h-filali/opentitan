@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
+use ml_dsa::{EncodedVerifyingKey, MlDsa87, VerifyingKey};
 use serde::{self, Deserialize, Serialize};
+use spki::DecodePublicKey;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use zerocopy::IntoBytes;
@@ -14,6 +16,22 @@ use crate::image::manifest_def::le_bytes_to_word_arr;
 use crate::util::num_de::HexEncoded;
 use crate::with_unknown;
 use sphincsplus::{DecodeKey, SpxPublicKey};
+
+/// Loads an ML-DSA-87 public key from a PEM- or DER-encoded SPKI file.
+///
+/// Mirrors `sw/host/hsmtool/src/util/key/mldsa.rs`'s `_load_public_key`,
+/// scoped to ML-DSA-87 only (unlike hsmtool, which also supports MLDSA-44/65.
+/// The device side only implements ML-DSA-87).
+pub fn load_mldsa87_public_key(path: &Path) -> Result<VerifyingKey<MlDsa87>> {
+    let data = std::fs::read(path)?;
+    let der_bytes = if let Ok((_label, bytes)) = pem_rfc7468::decode_vec(&data) {
+        bytes
+    } else {
+        data
+    };
+    VerifyingKey::<MlDsa87>::from_public_key_der(&der_bytes)
+        .map_err(|_| anyhow!("Could not decode ML-DSA-87 public key from SPKI DER"))
+}
 
 #[derive(Debug, Error)]
 pub enum ManifestExtError {
@@ -31,6 +49,8 @@ with_unknown! {
         secver_write = MANIFEST_EXT_ID_SECVER_WRITE,
         isfb = MANIFEST_EXT_ID_ISFB,
         isfb_erase = MANIFEST_EXT_ID_ISFB_ERASE,
+        mldsa_key = MANIFEST_EXT_ID_MLDSA_KEY,
+        mldsa_signature = MANIFEST_EXT_ID_MLDSA_SIGNATURE,
     }
 }
 
@@ -64,6 +84,17 @@ pub enum ManifestExtEntrySpec {
         spx_signature: PathBuf,
     },
 
+    #[serde(alias = "mldsa_key")]
+    MldsaKey {
+        /// The path to the ML-DSA-87 public or private key.
+        mldsa_key: PathBuf,
+    },
+    #[serde(alias = "mldsa_signature")]
+    MldsaSignature {
+        /// The path to the ML-DSA-87 signature.
+        mldsa_signature: PathBuf,
+    },
+
     #[serde(alias = "image_type")]
     ImageType { image_type: u32 },
 
@@ -95,6 +126,8 @@ pub enum ManifestExtEntrySpec {
 pub enum ManifestExtEntry {
     SpxKey(ManifestExtSpxKey),
     SpxSignature(Box<ManifestExtSpxSignature>),
+    MldsaKey(Box<ManifestExtMldsaKey>),
+    MldsaSignature(Box<ManifestExtMldsaSignature>),
     ImageType(ManifestExtImageType),
     SecVerWrite(ManifestExtSecVerWrite),
     Isfb(ManifestExtIsfb),
@@ -129,6 +162,10 @@ impl ManifestExtEntrySpec {
             ManifestExtEntrySpec::SpxSignature { spx_signature: _ } => {
                 MANIFEST_EXT_ID_SPX_SIGNATURE
             }
+            ManifestExtEntrySpec::MldsaKey { mldsa_key: _ } => MANIFEST_EXT_ID_MLDSA_KEY,
+            ManifestExtEntrySpec::MldsaSignature { mldsa_signature: _ } => {
+                MANIFEST_EXT_ID_MLDSA_SIGNATURE
+            }
             ManifestExtEntrySpec::SecVerWrite { .. } => MANIFEST_EXT_ID_SECVER_WRITE,
             ManifestExtEntrySpec::Isfb { .. } => MANIFEST_EXT_ID_ISFB,
             ManifestExtEntrySpec::IsfbErasePolicy { .. } => MANIFEST_EXT_ID_ISFB_ERASE,
@@ -140,11 +177,13 @@ impl ManifestExtEntrySpec {
     pub fn is_signed(&self) -> bool {
         match self {
             ManifestExtEntrySpec::SpxKey { .. }
+            | ManifestExtEntrySpec::MldsaKey { .. }
             | ManifestExtEntrySpec::SecVerWrite { .. }
             | ManifestExtEntrySpec::Isfb { .. }
             | ManifestExtEntrySpec::IsfbErasePolicy { .. }
             | ManifestExtEntrySpec::ImageType { .. } => true,
-            ManifestExtEntrySpec::SpxSignature { .. } => false,
+            ManifestExtEntrySpec::SpxSignature { .. }
+            | ManifestExtEntrySpec::MldsaSignature { .. } => false,
             ManifestExtEntrySpec::Raw { signed, .. } => *signed,
         }
     }
@@ -174,6 +213,63 @@ impl ManifestExtEntry {
                 },
                 signature: SigverifySpxSignature {
                     data: le_bytes_to_word_arr(signature)?,
+                },
+            },
+        )))
+    }
+
+    /// Creates a new manifest extension from a given ML-DSA-87 `key`.
+    pub fn new_mldsa_key_entry(key: &VerifyingKey<MlDsa87>) -> Result<Self> {
+        let encoded: EncodedVerifyingKey<MlDsa87> = key.encode();
+        let bytes: &[u8] = encoded.as_ref();
+        if bytes.len() != 32 + 2560 {
+            return Err(anyhow!(
+                "Unexpected ML-DSA-87 public key encoding length: {}",
+                bytes.len()
+            ));
+        }
+        let (rho, t1) = bytes.split_at(32);
+        Ok(ManifestExtEntry::MldsaKey(Box::new(ManifestExtMldsaKey {
+            header: ManifestExtHeader {
+                identifier: MANIFEST_EXT_ID_MLDSA_KEY,
+                name: MANIFEST_EXT_NAME_MLDSA_KEY,
+            },
+            key: SigverifyMldsaKey {
+                rho: le_bytes_to_word_arr(rho)?,
+                t1: le_bytes_to_word_arr(t1)?,
+            },
+        })))
+    }
+
+    /// Creates a new manifest extension from a given ML-DSA-87 `signature`.
+    ///
+    /// `signature` must be the raw FIPS 204 signature encoding (`c_tilde ||
+    /// z || h`, 4627 bytes).
+    pub fn new_mldsa_signature_entry(signature: &[u8]) -> Result<Self> {
+        const C_TILDE_LEN: usize = 64;
+        const Z_LEN: usize = 4480;
+        const H_LEN: usize = 83;
+        if signature.len() != C_TILDE_LEN + Z_LEN + H_LEN {
+            return Err(anyhow!(
+                "Unexpected ML-DSA-87 signature length: {}",
+                signature.len()
+            ));
+        }
+        let (c_tilde, rest) = signature.split_at(C_TILDE_LEN);
+        let (z, h) = rest.split_at(Z_LEN);
+        let mut h_arr = [0u8; H_LEN];
+        h_arr.copy_from_slice(h);
+        Ok(ManifestExtEntry::MldsaSignature(Box::new(
+            ManifestExtMldsaSignature {
+                header: ManifestExtHeader {
+                    identifier: MANIFEST_EXT_ID_MLDSA_SIGNATURE,
+                    name: MANIFEST_EXT_NAME_MLDSA_SIGNATURE,
+                },
+                signature: SigverifyMldsaSignature {
+                    c_tilde: le_bytes_to_word_arr(c_tilde)?,
+                    z: le_bytes_to_word_arr(z)?,
+                    h: h_arr,
+                    _pad: [0u8; 1],
                 },
             },
         )))
@@ -240,6 +336,12 @@ impl ManifestExtEntry {
             ManifestExtEntrySpec::SpxSignature { spx_signature } => {
                 ManifestExtEntry::new_spx_signature_entry(&std::fs::read(spx_signature)?)?
             }
+            ManifestExtEntrySpec::MldsaKey { mldsa_key } => {
+                ManifestExtEntry::new_mldsa_key_entry(&load_mldsa87_public_key(mldsa_key)?)?
+            }
+            ManifestExtEntrySpec::MldsaSignature { mldsa_signature } => {
+                ManifestExtEntry::new_mldsa_signature_entry(&std::fs::read(mldsa_signature)?)?
+            }
             ManifestExtEntrySpec::ImageType { image_type } => {
                 ManifestExtEntry::new_image_type_entry(*image_type)?
             }
@@ -287,6 +389,8 @@ impl ManifestExtEntry {
         match self {
             ManifestExtEntry::SpxKey(key) => &key.header,
             ManifestExtEntry::SpxSignature(sig) => &sig.header,
+            ManifestExtEntry::MldsaKey(key) => &key.header,
+            ManifestExtEntry::MldsaSignature(sig) => &sig.header,
             ManifestExtEntry::ImageType(image_type) => &image_type.header,
             ManifestExtEntry::SecVerWrite(sv) => &sv.header,
             ManifestExtEntry::Isfb(isfb) => &isfb.header,
@@ -300,6 +404,8 @@ impl ManifestExtEntry {
         match self {
             ManifestExtEntry::SpxKey(key) => key.as_bytes().to_vec(),
             ManifestExtEntry::SpxSignature(sig) => sig.as_bytes().to_vec(),
+            ManifestExtEntry::MldsaKey(key) => key.as_bytes().to_vec(),
+            ManifestExtEntry::MldsaSignature(sig) => sig.as_bytes().to_vec(),
             ManifestExtEntry::ImageType(image_type) => image_type.as_bytes().to_vec(),
             ManifestExtEntry::SecVerWrite(sv) => sv.as_bytes().to_vec(),
             ManifestExtEntry::Isfb(isfb) => isfb.to_vec().unwrap(),

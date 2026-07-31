@@ -10,7 +10,9 @@ use std::io::{Read, Write};
 use std::mem::{align_of, offset_of, size_of};
 use std::path::{Path, PathBuf};
 
-use anyhow::{Result, bail, ensure};
+use anyhow::{Result, anyhow, bail, ensure};
+use ml_dsa::{EncodedSignature, EncodedVerifyingKey, MlDsa87, Signature, VerifyingKey};
+use signature::Verifier;
 use sphincsplus::{SphincsPlus, SpxDomain, SpxPublicKey};
 use thiserror::Error;
 use zerocopy::FromBytes;
@@ -22,8 +24,9 @@ use crate::crypto::rsa::Signature as RsaSignature;
 use crate::crypto::sha256::Sha256Digest;
 use crate::image::manifest::{
     CHIP_MANIFEST_VERSION_MAJOR1, CHIP_MANIFEST_VERSION_MAJOR2, CHIP_MANIFEST_VERSION_MINOR1,
-    CHIP_ROM_EXT_IDENTIFIER, CHIP_ROM_EXT_SIZE_MAX, MANIFEST_EXT_ID_SPX_KEY,
-    MANIFEST_EXT_ID_SPX_SIGNATURE, Manifest, ManifestKind, SigverifySpxSignature,
+    CHIP_ROM_EXT_IDENTIFIER, CHIP_ROM_EXT_SIZE_MAX, MANIFEST_EXT_ID_MLDSA_KEY,
+    MANIFEST_EXT_ID_MLDSA_SIGNATURE, MANIFEST_EXT_ID_SPX_KEY, MANIFEST_EXT_ID_SPX_SIGNATURE,
+    Manifest, ManifestKind, SigverifySpxSignature,
 };
 use crate::image::manifest_def::{ManifestSigverifyBuffer, ManifestSpec};
 use crate::image::manifest_ext::{ManifestExtEntry, ManifestExtEntrySpec};
@@ -60,11 +63,17 @@ pub struct SpxSignatureParams {
     signature: [u8; 7856],
 }
 
-// Binary image is signed either RSA or ECDSA. SPX+ signature could be added as
-// an extension.
+pub struct MldsaSignatureParams {
+    key: VerifyingKey<MlDsa87>,
+    signature: Signature<MlDsa87>,
+}
+
+// Binary image is signed either RSA or ECDSA. SPX+ or ML-DSA-87 signatures
+// could be added as extensions.
 pub struct SigverifyParams {
     pub main_sig_params: MainSignatureParams,
     pub spx_sig_params: Option<SpxSignatureParams>,
+    pub mldsa_sig_params: Option<MldsaSignatureParams>,
     pub spx_hash_reversal_bug: bool,
 }
 
@@ -72,10 +81,12 @@ impl SigverifyParams {
     pub fn new(
         main_sig_params: MainSignatureParams,
         spx_sig_params: Option<SpxSignatureParams>,
+        mldsa_sig_params: Option<MldsaSignatureParams>,
     ) -> Self {
         SigverifyParams {
             main_sig_params,
             spx_sig_params,
+            mldsa_sig_params,
             spx_hash_reversal_bug: false,
         }
     }
@@ -112,6 +123,27 @@ impl SigverifyParams {
             spx.key.verify(domain, &spx.signature, &msg)?;
         } else {
             bail!("No SPX signature found");
+        }
+
+        Ok(())
+    }
+
+    /// Verify the optional ML-DSA-87 signature.
+    ///
+    /// There is no domain/pre-hash parameter: this goes through the generic
+    /// `signature::Verifier` trait, which has no context parameter, so it only
+    /// supports FIPS 204's "pure" mode with an empty context string. The
+    /// device-side `sigverify_mldsa_compute_mu()` does accept an explicit
+    ///  possibly non-empty context, but its current callers both pass an empty
+    /// one too.
+    pub fn mldsa_verify(&self, msg: &[u8]) -> Result<()> {
+        if let Some(mldsa) = &self.mldsa_sig_params {
+            mldsa
+                .key
+                .verify(msg, &mldsa.signature)
+                .map_err(|_| anyhow!("ML-DSA-87 signature verification failed"))?;
+        } else {
+            bail!("No ML-DSA-87 signature found");
         }
 
         Ok(())
@@ -245,11 +277,55 @@ impl Image {
         }
     }
 
+    /// Retrieve the ML-DSA-87 signature from the image, if present.
+    fn get_mldsa_signature(&self) -> Result<Option<MldsaSignatureParams>> {
+        let ext_tab = self.borrow_manifest()?.extensions.entries;
+        let key_o = ext_tab
+            .iter()
+            .find(|e| e.identifier == MANIFEST_EXT_ID_MLDSA_KEY);
+        let sig_o = ext_tab
+            .iter()
+            .find(|e| e.identifier == MANIFEST_EXT_ID_MLDSA_SIGNATURE);
+
+        match (key_o, sig_o) {
+            (Some(key_e), Some(sig_e)) => {
+                const KEY_SIZE: usize = 32 + 2560; // rho || t1.
+                // The on-disk extension is 4628 bytes (c_tilde || z || h,
+                // plus 1 byte of alignment padding). The crate's canonical
+                // encoding is the unpadded 4627 bytes.
+                const SIG_ON_DISK_SIZE: usize = 64 + 4480 + 83 + 1;
+                const SIG_SIZE: usize = 64 + 4480 + 83;
+
+                let mut key_bytes = [0u8; KEY_SIZE];
+                let mut sig_bytes = [0u8; SIG_ON_DISK_SIZE];
+                let k_ofs = (key_e.offset + 8) as usize;
+                let s_ofs = (sig_e.offset + 8) as usize;
+
+                key_bytes.copy_from_slice(&self.data.bytes[k_ofs..k_ofs + KEY_SIZE]);
+                sig_bytes.copy_from_slice(&self.data.bytes[s_ofs..s_ofs + SIG_ON_DISK_SIZE]);
+
+                let encoded_key = EncodedVerifyingKey::<MlDsa87>::try_from(key_bytes.as_slice())
+                    .map_err(|_| anyhow!("Invalid ML-DSA-87 public key length"))?;
+                let key = VerifyingKey::<MlDsa87>::decode(&encoded_key);
+
+                let encoded_sig =
+                    EncodedSignature::<MlDsa87>::try_from(&sig_bytes[..SIG_SIZE])
+                        .map_err(|_| anyhow!("Invalid ML-DSA-87 signature length"))?;
+                let signature = Signature::<MlDsa87>::decode(&encoded_sig)
+                    .ok_or_else(|| anyhow!("Could not decode ML-DSA-87 signature"))?;
+
+                Ok(Some(MldsaSignatureParams { key, signature }))
+            }
+            (_, _) => Ok(None),
+        }
+    }
+
     pub fn get_sigverify_params_from_manifest(&self) -> Result<SigverifyParams> {
         let manifest = self.borrow_manifest()?;
         let manifest_def: ManifestSpec = manifest.try_into()?;
 
         let spx_sig_params = self.get_spx_signature()?;
+        let mldsa_sig_params = self.get_mldsa_signature()?;
 
         let pub_key = manifest_def
             .pub_key()
@@ -269,6 +345,7 @@ impl Image {
             return Ok(SigverifyParams::new(
                 MainSignatureParams::Rsa(rsa_key, rsa_sig),
                 spx_sig_params,
+                mldsa_sig_params,
             ));
         }
 
@@ -278,6 +355,7 @@ impl Image {
         Ok(SigverifyParams::new(
             MainSignatureParams::Ecdsa(ecdsa_pub_key, ecdsa_sig),
             spx_sig_params,
+            mldsa_sig_params,
         ))
     }
 

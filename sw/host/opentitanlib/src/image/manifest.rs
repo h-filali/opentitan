@@ -46,12 +46,16 @@ pub const MANIFEST_EXT_ID_IMAGE_TYPE: u32 = 0x494d4754;
 pub const MANIFEST_EXT_ID_SECVER_WRITE: u32 = 0x3f086a41;
 pub const MANIFEST_EXT_ID_ISFB: u32 = 0x42465349;
 pub const MANIFEST_EXT_ID_ISFB_ERASE: u32 = 0x45465349;
+pub const MANIFEST_EXT_ID_MLDSA_KEY: u32 = 0xb5ebcf1c;
+pub const MANIFEST_EXT_ID_MLDSA_SIGNATURE: u32 = 0x17805152;
 pub const MANIFEST_EXT_NAME_SPX_KEY: u32 = 0x30545845;
 pub const MANIFEST_EXT_NAME_SPX_SIGNATURE: u32 = 0x31545845;
 pub const MANIFEST_EXT_NAME_IMAGE_TYPE: u32 = 0x494d4754;
 pub const MANIFEST_EXT_NAME_SECVER_WRITE: u32 = 0x56434553;
 pub const MANIFEST_EXT_NAME_ISFB: u32 = 0x42465349;
 pub const MANIFEST_EXT_NAME_ISFB_ERASE: u32 = 0x45465349;
+pub const MANIFEST_EXT_NAME_MLDSA_KEY: u32 = 0x35545845;
+pub const MANIFEST_EXT_NAME_MLDSA_SIGNATURE: u32 = 0x36545845;
 pub const CHIP_ROM_EXT_IDENTIFIER: u32 = 0x4552544f;
 pub const CHIP_BL0_IDENTIFIER: u32 = 0x3042544f;
 pub const CHIP_ROM_EXT_SIZE_MIN: u32 = 8788;
@@ -149,6 +153,66 @@ pub struct SigverifySpxKey {
 pub struct ManifestExtSpxKey {
     pub header: ManifestExtHeader,
     pub key: SigverifySpxKey,
+}
+
+/// An ML-DSA-87 public key (`rho || t1`, per FIPS 204's canonical public key
+/// encoding).
+#[repr(C)]
+#[derive(Immutable, IntoBytes, FromBytes, Debug, Copy, Clone)]
+pub struct SigverifyMldsaKey {
+    pub rho: [u32; 8usize],
+    pub t1: [u32; 640usize],
+}
+
+impl Default for SigverifyMldsaKey {
+    fn default() -> Self {
+        Self {
+            rho: [0; 8usize],
+            t1: [0; 640usize],
+        }
+    }
+}
+
+/// ML-DSA-87 public key manifest extension.
+#[repr(C)]
+#[derive(Immutable, IntoBytes, FromBytes, Debug, Default)]
+pub struct ManifestExtMldsaKey {
+    pub header: ManifestExtHeader,
+    pub key: SigverifyMldsaKey,
+}
+
+/// An ML-DSA-87 signature (`c_tilde || z || h`, per FIPS 204's canonical
+/// signature encoding). `_pad` is one byte of explicit trailing padding,
+/// matching the C compiler's implicit alignment padding for
+/// `sigverify_mldsa_signature_t` (4627 meaningful bytes rounds up to 4628 for
+/// 4-byte struct alignment). `zerocopy`'s `IntoBytes` derive requires padding
+/// to be explicit.
+#[repr(C)]
+#[derive(Immutable, IntoBytes, FromBytes, Debug, Copy, Clone)]
+pub struct SigverifyMldsaSignature {
+    pub c_tilde: [u32; 16usize],
+    pub z: [u32; 1120usize],
+    pub h: [u8; 83usize],
+    pub _pad: [u8; 1usize],
+}
+
+impl Default for SigverifyMldsaSignature {
+    fn default() -> Self {
+        Self {
+            c_tilde: [0; 16usize],
+            z: [0; 1120usize],
+            h: [0; 83usize],
+            _pad: [0; 1usize],
+        }
+    }
+}
+
+/// ML-DSA-87 signature manifest extension.
+#[repr(C)]
+#[derive(Immutable, IntoBytes, FromBytes, Debug, Default)]
+pub struct ManifestExtMldsaSignature {
+    pub header: ManifestExtHeader,
+    pub signature: SigverifyMldsaSignature,
 }
 
 /// A type that holds 96 32-bit words for RSA-3072.
