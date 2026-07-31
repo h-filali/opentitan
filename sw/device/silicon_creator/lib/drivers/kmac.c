@@ -277,6 +277,16 @@ rom_error_t kmac_shake256_configure(void) {
   });
 }
 
+rom_error_t kmac_sha3_256_configure(void) {
+  return kmac_configure((kmac_config_t){
+      .entropy_fast_process = false,
+      .msg_mask = false,
+      .sideload = false,
+      .kmac_en = false,
+      .mode = KMAC_CFG_SHADOWED_MODE_VALUE_SHA3,
+  });
+}
+
 rom_error_t kmac_shake256_start(void) {
   // Block until KMAC hardware is idle.
   HARDENED_RETURN_IF_ERROR(poll_state(KMAC_STATUS_SHA3_IDLE_BIT));
@@ -463,3 +473,8 @@ rom_error_t kmac_kmac256_final(uint32_t *result, size_t rlen) {
 // Provide link locations for the inline functions in the header file.
 extern rom_error_t kmac_kmac256_start(void);
 extern void kmac_kmac256_absorb(const void *data, size_t len);
+extern rom_error_t kmac_sha3_256_start(void);
+extern void kmac_sha3_256_absorb(const void *in, size_t inlen);
+extern void kmac_sha3_256_absorb_words(const uint32_t *in, size_t inlen);
+extern void kmac_sha3_256_squeeze_start(void);
+extern rom_error_t kmac_sha3_256_squeeze_end(uint32_t *out);

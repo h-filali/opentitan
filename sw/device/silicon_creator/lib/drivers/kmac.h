@@ -56,6 +56,16 @@ OT_WARN_UNUSED_RESULT
 rom_error_t kmac_shake256_configure(void);
 
 /**
+ * Configure the KMAC block for a SHA3-256 hashing operation.
+ *
+ * This selects the KMAC's dedicated SHA3 mode.
+ *
+ * @return Error code indicating if the operation succeeded.
+ */
+OT_WARN_UNUSED_RESULT
+rom_error_t kmac_sha3_256_configure(void);
+
+/**
  * Start a SHAKE-256 hashing operation.
  *
  * Must be called after `kmac_shake256_configure()`. Will block until KMAC
@@ -144,6 +154,63 @@ void kmac_shake256_squeeze_start(void);
  */
 OT_WARN_UNUSED_RESULT
 rom_error_t kmac_shake256_squeeze_end(uint32_t *out, size_t outlen);
+
+enum {
+  /**
+   * Size of a SHA3-256 digest in words.
+   *
+   * SHA3-256 always produces a fixed-size, 256-bit digest.
+   */
+  kKmacSha3256DigestWords = 256 / 32,
+};
+
+/**
+ * Start a SHA3-256 hashing operation.
+ *
+ * Must be called after `kmac_sha3_256_configure()`. Identical in mechanics to
+ * `kmac_shake256_start()`.
+ *
+ * @return Error code indicating if the operation succeeded.
+ */
+OT_WARN_UNUSED_RESULT
+inline rom_error_t kmac_sha3_256_start(void) { return kmac_shake256_start(); }
+
+/**
+ * Absorb (more) input for a SHA3-256 hashing operation.
+ *
+ * @param in Input buffer.
+ * @param inlen Length of input (bytes).
+ */
+inline void kmac_sha3_256_absorb(const void *in, size_t inlen) {
+  kmac_shake256_absorb((const uint8_t *)in, inlen);
+}
+
+/**
+ * Absorb (more) word-aligned input for a SHA3-256 hashing operation.
+ *
+ * @param in Input buffer.
+ * @param inlen Length of input (words).
+ */
+inline void kmac_sha3_256_absorb_words(const uint32_t *in, size_t inlen) {
+  kmac_shake256_absorb_words(in, inlen);
+}
+
+/**
+ * Begin the squeezing phase of a SHA3-256 hashing operation.
+ */
+inline void kmac_sha3_256_squeeze_start(void) { kmac_shake256_squeeze_start(); }
+
+/**
+ * Squeeze the (fixed-size) digest from a SHA3-256 hashing operation, and end
+ * the operation.
+ *
+ * @param[out] out Output buffer, exactly `kKmacSha3256DigestWords` long.
+ * @return Error code indicating if the operation succeeded.
+ */
+OT_WARN_UNUSED_RESULT
+inline rom_error_t kmac_sha3_256_squeeze_end(uint32_t *out) {
+  return kmac_shake256_squeeze_end(out, kKmacSha3256DigestWords);
+}
 
 /**
  * Load an unmasked software key into KMAC.
