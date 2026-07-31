@@ -146,6 +146,18 @@
                     '''
                 }
                 {
+                    name: "CREATOR_SW_CFG_SIGVERIFY_MLDSA_EN",
+                    size: "4",
+                    desc: '''
+                    Controls whether or not ML-DSA-87 signature verification will
+                    be executed when the ROM attempts to boot the ROM_EXT.
+                    A value of kSigverifyMldsaDisabledOtp disables ML-DSA-87
+                    signature verification, while all other values enable it.
+                    Note, ML-DSA-87 signature verification is always disabled in
+                    TEST_UNLOCKED* LC states.
+                    '''
+                }
+                {
                     name: "CREATOR_SW_CFG_FLASH_DATA_DEFAULT_CFG",
                     size: "4",
                     desc: '''
