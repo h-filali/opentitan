@@ -21,9 +21,13 @@ use opentitanlib::crypto::ecdsa::{
 use opentitanlib::crypto::rsa::{RsaPrivateKey, RsaPublicKey, Signature as RsaSignature};
 use opentitanlib::crypto::sha256::Sha256Digest;
 use opentitanlib::image::image::{self, ImageAssembler};
-use opentitanlib::image::manifest::{ManifestExtSpxSignature, ManifestKind};
+use opentitanlib::image::manifest::{
+    ManifestExtMldsaSignature, ManifestExtSpxSignature, ManifestKind,
+};
 use opentitanlib::image::manifest_def::ManifestSpec;
-use opentitanlib::image::manifest_ext::{ManifestExtEntry, ManifestExtId};
+use opentitanlib::image::manifest_ext::{
+    ManifestExtEntry, ManifestExtId, load_mldsa87_public_key,
+};
 use opentitanlib::util::file::{FromReader, ToWriter};
 use opentitanlib::util::parse_int::ParseInt;
 use sphincsplus::{
@@ -143,6 +147,18 @@ pub struct ManifestUpdateCommand {
     /// Passing a private key indicates the key will be used for signing.
     #[arg(long)]
     spx_key: Option<PathBuf>,
+    /// Filename for an external ML-DSA-87 signature file (raw FIPS 204
+    /// encoding, `c_tilde || z || h`).
+    #[arg(long)]
+    mldsa_signature: Option<PathBuf>,
+    /// Filename for the ML-DSA-87 public key (SPKI PEM/DER) corresponding to
+    /// the signature.
+    ///
+    /// Only a public key is accepted here. Online signing isn't supported for
+    /// ML-DSA-87 by this tool. Sign offline (e.g. via `hsmtool mldsa sign`)
+    /// and pass the result to `--mldsa-signature` instead.
+    #[arg(long)]
+    mldsa_key: Option<PathBuf>,
     /// The signature domain (None, Pure, PreHashedSha256)
     #[arg(long, default_value_t = SpxDomain::default())]
     domain: SpxDomain,
@@ -273,6 +289,33 @@ impl CommandDispatch for ManifestUpdateCommand {
             }
         }
 
+        // Load / write ML-DSA-87 public key. Unlike the other algorithms,
+        // only offline signing is supported, so there is no corresponding
+        // private-key/online-signing path below.
+        if let Some(key) = &self.mldsa_key {
+            let pk = load_mldsa87_public_key(key)?;
+            let key_ext = ManifestExtEntry::new_mldsa_key_entry(&pk)?;
+            image.add_manifest_extension(key_ext)?;
+
+            if !image
+                .borrow_manifest()?
+                .extensions
+                .entries
+                .iter()
+                .any(|e| {
+                    e.identifier == u32::from(ManifestExtId::mldsa_signature) && e.offset != 0
+                })
+            {
+                // Allocate space for `mldsa_signature` (this impacts the
+                // manifest `length` field which is in the signed region of
+                // the image). Adding this facilitates offline signing.
+                image.allocate_manifest_extension(
+                    ManifestExtId::mldsa_signature.into(),
+                    std::mem::size_of::<ManifestExtMldsaSignature>(),
+                )?;
+            }
+        }
+
         // Update the manifest fields that are in the unsigned region.
         // These extensions will come after `signed_region_end`.
         image.add_unsigned_manifest_extensions(&ext)?;
@@ -291,6 +334,7 @@ impl CommandDispatch for ManifestUpdateCommand {
             .map(|e| e.id())
             .chain(vec![
                 ManifestExtId::spx_key.into(),
+                ManifestExtId::mldsa_key.into(),
                 ManifestExtId::secver_write.into(),
                 ManifestExtId::isfb.into(),
                 ManifestExtId::isfb_erase.into(),
@@ -362,6 +406,14 @@ impl CommandDispatch for ManifestUpdateCommand {
                 signature.as_bytes(),
             )?)?;
         }
+        // Attach ML-DSA-87 signature (offline only; see `mldsa_key`'s doc
+        // comment).
+        if let Some(mldsa_signature) = &self.mldsa_signature {
+            let signature = std::fs::read(mldsa_signature)?;
+            image.add_manifest_extension(ManifestExtEntry::new_mldsa_signature_entry(
+                &signature,
+            )?)?;
+        }
 
         image.write_to_file(self.output.as_ref().unwrap_or(&self.image))?;
         Ok(None)
@@ -382,6 +434,9 @@ pub struct ManifestVerifyCommand {
     /// The SPX signature was created with a reversed hash.
     #[arg(long, default_value_t = false)]
     spx_hash_reversal_bug: bool,
+    /// Run verification for ML-DSA-87.
+    #[arg(long)]
+    mldsa: bool,
 }
 
 impl CommandDispatch for ManifestVerifyCommand {
@@ -409,6 +464,14 @@ impl CommandDispatch for ManifestVerifyCommand {
                             self.domain
                         );
                     })
+            })??;
+        }
+
+        if self.mldsa {
+            image.map_signed_region(|b| {
+                sigverify_params.mldsa_verify(b).inspect_err(|_| {
+                    eprintln!("ML-DSA-87 signature verification failed");
+                })
             })??;
         }
 
