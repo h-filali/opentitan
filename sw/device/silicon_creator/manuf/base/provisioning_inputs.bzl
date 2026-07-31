@@ -32,6 +32,8 @@ EARLGREY_SKUS = {
         "owner_fw": "//sw/device/silicon_owner/bare_metal:bare_metal_slot_b",
         "ecdsa_key": {},
         "spx_key": {},
+        # Empty for now, since no SKU provisions ML-DSA-87 keys yet.
+        "mldsa_key": {},
         "signature_prefix": None,
         "orchestrator_cfg": "@lowrisc_opentitan//sw/host/provisioning/orchestrator/configs/skus:emulation.hjson",
     },
@@ -47,6 +49,8 @@ EARLGREY_SKUS = {
         "owner_fw": "//sw/device/silicon_owner/bare_metal:bare_metal_slot_b",
         "ecdsa_key": {},
         "spx_key": {},
+        # Empty for now, since no SKU provisions ML-DSA-87 keys yet.
+        "mldsa_key": {},
         "signature_prefix": None,
         "orchestrator_cfg": "@lowrisc_opentitan//sw/host/provisioning/orchestrator/configs/skus:emulation_dice_cwt.hjson",
     },
@@ -65,6 +69,8 @@ EARLGREY_SKUS = {
         "owner_fw": "//sw/device/silicon_owner/bare_metal:bare_metal_slot_b",
         "ecdsa_key": {},
         "spx_key": {},
+        # Empty for now, since no SKU provisions ML-DSA-87 keys yet.
+        "mldsa_key": {},
         "signature_prefix": None,
         "orchestrator_cfg": "@lowrisc_opentitan//sw/host/provisioning/orchestrator/configs/skus:emulation_tpm.hjson",
     },
@@ -96,7 +102,7 @@ def disqualified_for_signing(name, data):
         return True
     if "emulation" in name:
         return True
-    if not data["ecdsa_key"] and not data["spx_key"]:
+    if not data["ecdsa_key"] and not data["spx_key"] and not data["mldsa_key"]:
         return True
     if "em00" in data["otp"]:
         return True
