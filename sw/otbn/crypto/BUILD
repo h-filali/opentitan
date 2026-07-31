@@ -10,12 +10,24 @@ otbn_binary(
     name = "boot",
     srcs = [
         "boot.s",
+        "//sw/otbn/crypto/mldsa87/verify:mldsa87_verify_encoding.s",
+        "//sw/otbn/crypto/mldsa87/verify:mldsa87_verify_norm.s",
+        "//sw/otbn/crypto/mldsa87/verify:mldsa87_verify_ops.s",
+        "//sw/otbn/crypto/mldsa87/verify:mldsa87_verify_rounding.s",
+        "//sw/otbn/crypto/mldsa87/verify:mldsa87_verify.s",
     ],
     deps = [
         ":p256_base",
         ":p256_isoncurve",
         ":p256_sign",
         ":p256_verify",
+        ":xof",
+        "//sw/otbn/crypto/mldsa87:mldsa87_arith",
+        "//sw/otbn/crypto/mldsa87:mldsa87_encoding",
+        "//sw/otbn/crypto/mldsa87:mldsa87_expand",
+        "//sw/otbn/crypto/mldsa87:mldsa87_ntt",
+        "//sw/otbn/crypto/mldsa87:mldsa87_sample",
+        "//sw/otbn/crypto/mldsa87:mldsa87_utils",
     ],
 )
 

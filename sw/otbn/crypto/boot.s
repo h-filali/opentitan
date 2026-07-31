@@ -7,10 +7,11 @@
  *
  * During the boot process, this program should remain loaded. This binary has
  * the following modes:
- *   1. MODE_SIGVERIFY: ECDSA-P256 signature verification.
- *   2. MODE_ATTESTATION_KEYGEN: Derive a new attestation keypair (ECDSA-P256).
- *   3. MODE_ATTESTATION_ENDORSE: Sign with a saved attestation signing key.
- *   4. MODE_ATTESTATION_KEY_SAVE: Save an attestation signing key.
+ *   1. MODE_P256_SIGVERIFY: ECDSA-P256 signature verification.
+ *   2. MODE_P256_ATTESTATION_KEYGEN: Derive a new attestation keypair (ECDSA-P256).
+ *   3. MODE_P256_ATTESTATION_ENDORSE: Sign with a saved attestation signing key (ECDSA-P256).
+ *   4. MODE_P256_ATTESTATION_KEY_SAVE: Save an attestation signing key (ECDSA-P256).
+ *   5. MODE_MLDSA87_SIGVERIFY: ML-DSA-87 signature verification.
  *
  * Ibex will run `MODE_SEC_BOOT_MODEXP` as part of checking the code
  * signature of the next boot stage. This mode doesn't interact or interfere
@@ -20,16 +21,16 @@
  * purpose of this program is to store the attestation key of a particular key
  * manager stage long enough to sign the public key of the next stage, without
  * rebooting. At each key manager stage, Ibex should:
- *   - Call `MODE_ATTESTATION_KEYGEN` to get the current public key
+ *   - Call `MODE_P256_ATTESTATION_KEYGEN` to get the current public key
  *   - Construct the attestation certificate for the current stage, including
  *     the public key
- *   - Call `MODE_ATTESTATION_ENDORSE` to sign the certificate with the stored
+ *   - Call `MODE_P256_ATTESTATION_ENDORSE` to sign the certificate with the stored
  *     signing key from the *previous stage* and clear the key
- *   - Call `MODE_ATTESTATION_KEY_SAVE` to save the current stage's signing
+ *   - Call `MODE_P256_ATTESTATION_KEY_SAVE` to save the current stage's signing
  *     key, which will later endorse the next stage's certificate
  *
  * Of course, in the first stage there is no previous stage signing key and no
- * certificate, so Ibex should skip the `MODE_ATTESTATION_ENDORSE` step. Ibex
+ * certificate, so Ibex should skip the `MODE_P256_ATTESTATION_ENDORSE` step. Ibex
  * may clear IMEM/DMEM if it needs to run a different OTBN routine (e.g.
  * signature verification for ownership transfer), but doing so will wipe any
  * saved keys. This binary is designed so that it should not need to be
@@ -46,7 +47,7 @@
 
 /**
  * Mode magic values, generated with
- * $ ./util/design/sparse-fsm-encode.py -d 6 -m 4 -n 11 --avoid-zero -s 3357382482
+ * $ ./util/design/sparse-fsm-encode.py -d 6 -m 5 -n 11 --avoid-zero -s 3357382482
  *
  * Call the same utility with the same arguments and a higher -m to generate
  * additional value(s) without changing the others or sacrificing mutual HD.
@@ -56,10 +57,11 @@
  * as `li`. If support is added, we could use 32-bit values here instead of
  * 11-bit.
  */
-.equ MODE_SIGVERIFY, 0x7d3
-.equ MODE_ATTESTATION_KEYGEN, 0x2bf
-.equ MODE_ATTESTATION_ENDORSE, 0x5e8
-.equ MODE_ATTESTATION_KEY_SAVE, 0x64d
+.equ MODE_P256_SIGVERIFY, 0x7d3
+.equ MODE_P256_ATTESTATION_KEYGEN, 0x2bf
+.equ MODE_P256_ATTESTATION_ENDORSE, 0x5e8
+.equ MODE_P256_ATTESTATION_KEY_SAVE, 0x64d
+.equ MODE_MLDSA87_SIGVERIFY, 0x176
 
 .section .text.start
 start:
@@ -67,17 +69,20 @@ start:
   la    x2, mode
   lw    x2, 0(x2)
 
-  addi  x3, x0, MODE_SIGVERIFY
-  beq   x2, x3, sigverify
+  addi  x3, x0, MODE_P256_SIGVERIFY
+  beq   x2, x3, p256_sigverify
 
-  addi  x3, x0, MODE_ATTESTATION_KEYGEN
-  beq   x2, x3, attestation_keygen
+  addi  x3, x0, MODE_P256_ATTESTATION_KEYGEN
+  beq   x2, x3, p256_attestation_keygen
 
-  addi  x3, x0, MODE_ATTESTATION_ENDORSE
-  beq   x2, x3, attestation_endorse
+  addi  x3, x0, MODE_P256_ATTESTATION_ENDORSE
+  beq   x2, x3, p256_attestation_endorse
 
-  addi  x3, x0, MODE_ATTESTATION_KEY_SAVE
-  beq   x2, x3, attestation_key_save
+  addi  x3, x0, MODE_P256_ATTESTATION_KEY_SAVE
+  beq   x2, x3, p256_attestation_key_save
+
+  addi  x3, x0, MODE_MLDSA87_SIGVERIFY
+  beq   x2, x3, mldsa87_verify
 
   /* Invalid mode; fail. */
 start_failed:
@@ -105,7 +110,7 @@ start_failed:
  * @param[out] dmem[ok]:  success/failure of basic checks (32 bits)
  * @param[out] dmem[x_r]: dmem buffer for reduced affine x_r-coordinate (x_1)
  */
-sigverify:
+p256_sigverify:
   /* Validate the public key (ends the program on failure). */
   jal      x1, p256_check_public_key
 
@@ -126,14 +131,14 @@ sigverify:
  * @param[out]  dmem[x]: Public key x-coordinate.
  * @param[out]  dmem[y]: Public key y-coordinate.
  */
-attestation_keygen:
+p256_attestation_keygen:
   /* Initialize all-zero register. */
   bn.xor   w31, w31, w31
 
   /* Generate secret key in shares.
        w20, w21 <= d0 (first share of secret key)
        w10, w11 <= d1 (second share of secret key) */
-  jal      x1, attestation_secret_key_from_seed
+  jal      x1, p256_attestation_secret_key_from_seed
 
   /* Call scalar multiplication with base point.
      R = (x_p, y_p, z_p) = (w8, w9, w10) <= d*G */
@@ -184,7 +189,7 @@ attestation_keygen:
  * @param[out]   dmem[r]: Buffer for r component of signature (256 bits)
  * @param[out]   dmem[s]: Buffer for s component of signature (256 bits)
  */
-attestation_endorse:
+p256_attestation_endorse:
   /* Generate a fresh random scalar for signing.
        dmem[k0] <= first share of k
        dmem[k1] <= second share of k */
@@ -217,14 +222,14 @@ attestation_endorse:
  * @param[out]  dmem[d0]: First share of private key (320 bits).
  * @param[out]  dmem[d1]: Second share of private key (320 bits).
  */
-attestation_key_save:
+p256_attestation_key_save:
   /* Initialize all-zero register. */
   bn.xor   w31, w31, w31
 
   /* Generate secret key in shares.
        w20, w21 <= d0 (first share of secret key)
        w10, w11 <= d1 (second share of secret key) */
-  jal      x1, attestation_secret_key_from_seed
+  jal      x1, p256_attestation_secret_key_from_seed
 
   /* Store secret key in DMEM.
      dmem[d0] <= w20, w21 = d0
@@ -261,7 +266,7 @@ attestation_key_save:
  * clobbered registers: x2, x3, x20, w1 to w4, w10, w11, w20 to w29
  * clobbered flag groups: FG0
  */
-attestation_secret_key_from_seed:
+p256_attestation_secret_key_from_seed:
   /* Load keymgr seeds from WSRs.
        w20,w21 <= seed0
        w10,w11 <= seed1 */
@@ -341,35 +346,175 @@ x_r:
 attestation_additional_seed:
 .zero 64
 
-.section .scratchpad
-
-/* First share of the saved attestation ECDSA-P256 private key (d). */
-.globl d0
+.data
 .balign 32
-d0:
+
+/*
+ * ML-DSA-87 verify public key.
+ */
+
+.globl mldsa87_verify_pk
+.globl mldsa87_verify_pk_rho
+.globl mldsa87_verify_pk_t1
+
+mldsa87_verify_pk:
+mldsa87_verify_pk_rho:
+.zero 32
+mldsa87_verify_pk_t1:
+.zero 2560
+
+/*
+ * ML-DSA-87 verify signature.
+ */
+
+.globl mldsa87_verify_sig
+.globl mldsa87_verify_sig_c_tilde
+.globl mldsa87_verify_sig_z
+.globl mldsa87_verify_sig_h
+
+mldsa87_verify_sig:
+mldsa87_verify_sig_c_tilde:
 .zero 64
+mldsa87_verify_sig_z:
+.zero 4480
+mldsa87_verify_sig_h:
+.zero 83
+.zero 13 /* Padding */
+
+/*
+ * ML-DSA-87 verify message.
+ */
+
+.globl mldsa87_verify_mu
+
+mldsa87_verify_mu:
+.zero 64
+
+/*
+ * ML-DSA-87 verify result.
+ */
+
+.globl mldsa87_verify_res_ok
+.globl mldsa87_verify_res_c_tilde_prime
+
+mldsa87_verify_res_ok:
+.zero 4
+.zero 28 /* Padding */
+mldsa87_verify_res_c_tilde_prime:
+.zero 64
+
+/*
+ * ML-DSA-87 verify intermediate variables.
+ */
+
+.globl mldsa87_verify_var_rho
+.globl mldsa87_verify_var_c
+.globl mldsa87_verify_var_h
+
+/* RHO with indices */
+mldsa87_verify_var_rho:
+.zero 32
+.zero 2  /* r, s */
+.zero 30 /* Padding */
+/* Challenge polynomial */
+mldsa87_verify_var_c:
+.zero 1024
+/* Encoded hint in intermediate representation. */
+mldsa87_verify_var_h:
+.zero 336
+.zero 16 /* Padding */
+
+/*
+ * ML-DSA-87 verify polynomial slots.
+ */
+
+.globl mldsa87_verify_poly_slot0
+.globl mldsa87_verify_poly_slot1
+.globl mldsa87_verify_poly_slot2
+
+mldsa87_verify_poly_slot0:
+.zero 1024
+mldsa87_verify_poly_slot1:
+.zero 1024
+mldsa87_verify_poly_slot2:
+.zero 1024
+
+/*
+ * ML-DSA-87 verify constants.
+ */
+
+.globl mldsa87_verify_const_params
+.globl mldsa87_verify_const_gamma1_beta_bound
+
+/*
+ * q  = 8380417 = 2^23 - 2^13 + 1 (ML-DSA modulus)
+ * mu = -q^-1 mod R (Montgomery constant)
+ * f  = 256^-1 * R^2 mod q (INTT divisor time R in Montgomery domain)
+ */
+mldsa87_verify_const_params:
+.word 0x007fe001 /* q */
+.word 0xfc7fdfff /* mu */
+.word 0x0000a3fa /* f */
+.word 0x00000000
+.word 0x00000000
+.word 0x00000000
+.word 0x00000000
+.word 0x00000000
+
+/* GAMMA1 - BETA = 2^19 - 120. */
+mldsa87_verify_const_gamma1_beta_bound:
+.word 0x0007ff88
+.word 0x0007ff88
+.word 0x0007ff88
+.word 0x0007ff88
+.word 0x0007ff88
+.word 0x0007ff88
+.word 0x0007ff88
+.word 0x0007ff88
+
+/* ML-DSA-87 verify call stack, used by mldsa87_verify.s and its callees. */
+.globl stack
+
+stack:
+.zero 256
+
+.section .scratchpad
+.balign 32
+
+/*
+ * ML-DSA-87 verify vector slots.
+ */
+.globl mldsa87_verify_vector_slot0
+.globl mldsa87_verify_vector_slot1
+
+mldsa87_verify_vector_slot0:
+.zero 8192
+mldsa87_verify_vector_slot1:
+.zero 8192
+
+/* First share of the saved attestation ECDSA-P256 private key (d).
+   Aliased into mldsa87_verify_vector_slot0. */
+.globl d0
+.equ d0, mldsa87_verify_vector_slot0
 
 /* Second share of the saved attestation ECDSA-P256 private key (d). */
 .globl d1
-.balign 32
-d1:
-.zero 64
+.equ d1, d0 + 64
 
 /* First share of the per-signature ECDSA-P256 secret scalar (k). */
 .globl k0
-.balign 32
-k0:
-.zero 64
+.equ k0, d1 + 64
 
 /* Second share of the per-signature ECDSA-P256 secret scalar (k). */
 .globl k1
-.balign 32
-k1:
-.zero 64
+.equ k1, k0 + 64
 
-/* Buffer for the squared Mongomery Radix RR = (2^3072)^2 mod M.
+/* Buffer for the squared Montgomery Radix RR = (2^3072)^2 mod M.
    Populated by the RSA-3072 implementation. */
-.balign 32
 .globl rr
-rr:
-.zero 384
+.equ rr, k1 + 64
+
+/* Switch back to .text: some files assembled after this one (e.g.
+   mldsa87_verify_encoding.s) have no leading section directive of their own
+   and would otherwise silently inherit whatever section is active here. */
+.text
