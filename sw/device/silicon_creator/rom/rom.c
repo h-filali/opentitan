@@ -18,7 +18,6 @@
 #include "sw/device/silicon_creator/lib/base/boot_measurements.h"
 #include "sw/device/silicon_creator/lib/base/sec_mmio.h"
 #include "sw/device/silicon_creator/lib/base/static_critical_version.h"
-#include "sw/device/silicon_creator/lib/base/util.h"
 #include "sw/device/silicon_creator/lib/boot_data.h"
 #include "sw/device/silicon_creator/lib/boot_log.h"
 #include "sw/device/silicon_creator/lib/build_info.h"
@@ -50,7 +49,7 @@
 #include "sw/device/silicon_creator/rom/rom_epmp.h"
 #include "sw/device/silicon_creator/rom/rom_state.h"
 #include "sw/device/silicon_creator/rom/sigverify_keys_ecdsa_p256.h"
-#include "sw/device/silicon_creator/rom/sigverify_keys_spx.h"
+#include "sw/device/silicon_creator/rom/sigverify_keys_mldsa.h"
 #include "sw/device/silicon_creator/rom/sigverify_otp_keys.h"
 
 #include "hw/top/hmac_regs.h"  // Generated.
@@ -341,23 +340,22 @@ static rom_error_t rom_verify(const manifest_t *manifest, uint32_t *nvm_exec) {
       &sigverify_ctx,
       sigverify_ecdsa_p256_key_id_get(&manifest->ecdsa_public_key), lc_state,
       &ecdsa_key));
-  // SPX+ key.
-  const sigverify_spx_key_t *spx_key = NULL;
-  sigverify_spx_config_id_t spx_config = 0;
-  const sigverify_spx_signature_t *spx_signature = NULL;
-  uint32_t sigverify_spx_en = sigverify_spx_verify_enabled(lc_state);
-  if (launder32(sigverify_spx_en) != kSigverifySpxDisabledOtp) {
-    const manifest_ext_spx_key_t *ext_spx_key;
-    HARDENED_RETURN_IF_ERROR(manifest_ext_get_spx_key(manifest, &ext_spx_key));
-    HARDENED_RETURN_IF_ERROR(sigverify_spx_key_get(
-        &sigverify_ctx, sigverify_spx_key_id_get(&ext_spx_key->key), lc_state,
-        &spx_key, &spx_config));
-    const manifest_ext_spx_signature_t *ext_spx_signature;
+  // ML-DSA-87 key and signature.
+  //
+  // OTP does not hold a usable copy of the key, only a digest, so the full
+  // key delivered via the manifest must be validated against OTP before use.
+  const manifest_ext_mldsa_key_t *ext_mldsa_key = NULL;
+  const manifest_ext_mldsa_signature_t *ext_mldsa_signature = NULL;
+  uint32_t sigverify_mldsa_en = sigverify_mldsa_verify_enabled(lc_state);
+  if (launder32(sigverify_mldsa_en) != kSigverifyMldsaDisabledOtp) {
     HARDENED_RETURN_IF_ERROR(
-        manifest_ext_get_spx_signature(manifest, &ext_spx_signature));
-    spx_signature = &ext_spx_signature->signature;
+        manifest_ext_get_mldsa_key(manifest, &ext_mldsa_key));
+    HARDENED_RETURN_IF_ERROR(sigverify_mldsa_key_get(
+        &sigverify_ctx, &ext_mldsa_key->key, lc_state));
+    HARDENED_RETURN_IF_ERROR(
+        manifest_ext_get_mldsa_signature(manifest, &ext_mldsa_signature));
   } else {
-    HARDENED_CHECK_EQ(sigverify_spx_en, kSigverifySpxDisabledOtp);
+    HARDENED_CHECK_EQ(sigverify_mldsa_en, kSigverifyMldsaDisabledOtp);
   }
 
   // Measure ROM_EXT and portions of manifest via SHA256 digest.
@@ -384,39 +382,49 @@ static rom_error_t rom_verify(const manifest_t *manifest, uint32_t *nvm_exec) {
   // is what hmac_sha256_final produces.
   hmac_digest_t rev_digest;
   hmac_sha256_final(&rev_digest);
-  // The SPHINCS+ verify function expects the digest in the natural order,
-  // so we copy and reverse the bytes.
-  hmac_digest_t fwd_digest = rev_digest;
-  util_reverse_bytes(&fwd_digest, sizeof(fwd_digest));
   // Copy the ROM_EXT measurement to the .static_critical section.
   static_assert(sizeof(boot_measurements.rom_ext) == sizeof(rev_digest),
                 "Unexpected ROM_EXT digest size.");
   memcpy(&boot_measurements.rom_ext, &rev_digest,
          sizeof(boot_measurements.rom_ext));
 
+  // Compute the ML-DSA-87 message representative ("mu"). ML-DSA-87 does not
+  // reuse the SHA-256 digest above, FIPS 204 mandates its own SHAKE-256-based
+  // derivation over the same logical inputs. Only meaningful if ML-DSA-87
+  // verification is enabled, left zeroed otherwise, since
+  // `sigverify_mldsa_verify()` re-checks the OTP enable bit itself and will
+  // not use it in the disabled case.
+  sigverify_mldsa_mu_t mldsa_mu;
+  memset(&mldsa_mu, 0, sizeof(mldsa_mu));
+  if (launder32(sigverify_mldsa_en) != kSigverifyMldsaDisabledOtp) {
+    HARDENED_RETURN_IF_ERROR(sigverify_mldsa_compute_mu(
+        &ext_mldsa_key->key, /*ctx=*/NULL, /*ctx_len=*/0,
+        &usage_constraints_from_hw, sizeof(usage_constraints_from_hw),
+        anti_rollback, anti_rollback_len, digest_region.start,
+        digest_region.length, &mldsa_mu));
+  }
+
   CFI_FUNC_COUNTER_INCREMENT(rom_counters, kCfiRomVerify, 2);
 
   /**
-   * Verify the ECDSA/SPX+ signatures of ROM_EXT.
+   * Verify the ECDSA/ML-DSA-87 signatures of ROM_EXT.
    *
    * We swap the order of signature verifications randomly.
    */
   *nvm_exec = 0;
+  const sigverify_mldsa_signature_t *mldsa_signature =
+      ext_mldsa_signature != NULL ? &ext_mldsa_signature->signature : NULL;
+  const sigverify_mldsa_key_t *mldsa_key =
+      ext_mldsa_key != NULL ? &ext_mldsa_key->key : NULL;
   if (rnd_uint32() < 0x80000000) {
     HARDENED_RETURN_IF_ERROR(sigverify_ecdsa_p256_verify(
         &manifest->ecdsa_signature, ecdsa_key, &rev_digest, nvm_exec));
 
-    return sigverify_spx_verify(
-        spx_signature, spx_key, spx_config, lc_state,
-        &usage_constraints_from_hw, sizeof(usage_constraints_from_hw),
-        anti_rollback, anti_rollback_len, digest_region.start,
-        digest_region.length, &fwd_digest, nvm_exec);
+    return sigverify_mldsa_verify(mldsa_signature, mldsa_key, lc_state,
+                                  &mldsa_mu, nvm_exec);
   } else {
-    HARDENED_RETURN_IF_ERROR(sigverify_spx_verify(
-        spx_signature, spx_key, spx_config, lc_state,
-        &usage_constraints_from_hw, sizeof(usage_constraints_from_hw),
-        anti_rollback, anti_rollback_len, digest_region.start,
-        digest_region.length, &fwd_digest, nvm_exec));
+    HARDENED_RETURN_IF_ERROR(sigverify_mldsa_verify(
+        mldsa_signature, mldsa_key, lc_state, &mldsa_mu, nvm_exec));
 
     return sigverify_ecdsa_p256_verify(&manifest->ecdsa_signature, ecdsa_key,
                                        &rev_digest, nvm_exec);
