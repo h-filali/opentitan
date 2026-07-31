@@ -147,6 +147,9 @@ rom_error_t owner_block_application_key_check(
     case kOwnershipKeyAlgEcdsaP256:
     case kOwnershipKeyAlgHybridSpxPure:
     case kOwnershipKeyAlgHybridSpxPrehash:
+    // A pure ML-DSA-87-only key (no ECDSA component) is not currently accepted
+    // here, only the ECDSA-hybrid combination is.
+    case kOwnershipKeyAlgHybridMldsaPure:
       break;
     default:
       return kErrorOwnershipInvalidAlgorithm;
@@ -575,10 +578,15 @@ rom_error_t owner_keyring_find_key(const owner_application_keyring_t *keyring,
                                    uint32_t key_id, size_t *index) {
   for (size_t i = 0; i < keyring->length && i < ARRAYSIZE(keyring->key); ++i) {
     uint32_t id = keyring->key[i]->data.id;
-    if ((keyring->key[i]->key_alg & kOwnershipKeyAlgCategoryMask) ==
-        kOwnershipKeyAlgCategoryHybrid) {
+    uint32_t category = keyring->key[i]->key_alg & kOwnershipKeyAlgCategoryMask;
+    if (category == kOwnershipKeyAlgCategoryHybrid) {
       // The ID of a hybrid key is the xor of the IDs of each key.
       id ^= keyring->key[i]->data.hybrid.spx.data[0];
+    } else if (category == kOwnershipKeyAlgCategoryHybridMldsa) {
+      // The ID of a hybrid ECDSA/ML-DSA-87 key is the xor of the ECDSA key's
+      // ID and the least-significant word of the ML-DSA-87 key's SHA3-256 digest.
+      // The digest, not the raw key, is what's stored here.
+      id ^= keyring->key[i]->data.hybrid_mldsa.mldsa_digest[0];
     }
     if (id == key_id) {
       *index = i;

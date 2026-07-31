@@ -86,26 +86,30 @@ rom_error_t ownership_key_validate(size_t page, ownership_key_t key,
   hmac_sha256(message, len, &digest);
 
   if ((key & kOwnershipKeyUnlock) == kOwnershipKeyUnlock) {
-    if (owner_verify(key_alg, &owner_page[page].unlock_key, ecdsa, spx, NULL, 0,
-                     NULL, 0, message, len, &digest, nvm_exec) == kErrorOk) {
+    if (owner_verify(key_alg, &owner_page[page].unlock_key, ecdsa, spx, NULL,
+                     NULL, NULL, NULL, 0, NULL, 0, message, len, &digest,
+                     nvm_exec) == kErrorOk) {
       return kErrorOk;
     }
   }
   if ((key & kOwnershipKeyActivate) == kOwnershipKeyActivate) {
-    if (owner_verify(key_alg, &owner_page[page].activate_key, ecdsa, spx, NULL,
-                     0, NULL, 0, message, len, &digest, nvm_exec) == kErrorOk) {
+    if (owner_verify(key_alg, &owner_page[page].activate_key, ecdsa, spx,
+                     NULL, NULL, NULL, NULL, 0, NULL, 0, message, len, &digest,
+                     nvm_exec) == kErrorOk) {
       return kErrorOk;
     }
   }
   if (kNoOwnerRecoveryKey &&
       (key & kOwnershipKeyRecovery) == kOwnershipKeyRecovery) {
-    if (owner_verify(key_alg, kNoOwnerRecoveryKey, ecdsa, spx, NULL, 0, NULL, 0,
-                     message, len, &digest, nvm_exec) == kErrorOk) {
+    if (owner_verify(key_alg, kNoOwnerRecoveryKey, ecdsa, spx, NULL, NULL,
+                     NULL, NULL, 0, NULL, 0, message, len, &digest,
+                     nvm_exec) == kErrorOk) {
       return kErrorOk;
     }
   }
-  if (owner_verify(key_alg, &owner_page[page].owner_key, ecdsa, spx, NULL, 0,
-                   NULL, 0, message, len, &digest, nvm_exec) == kErrorOk) {
+  if (owner_verify(key_alg, &owner_page[page].owner_key, ecdsa, spx, NULL,
+                   NULL, NULL, NULL, 0, NULL, 0, message, len, &digest,
+                   nvm_exec) == kErrorOk) {
     return kErrorOk;
   }
   return kErrorOwnershipInvalidSignature;

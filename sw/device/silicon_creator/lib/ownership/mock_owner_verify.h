@@ -20,8 +20,10 @@ class MockOwnerVerify : public global_mock::GlobalMock<MockOwnerVerify> {
   MOCK_METHOD(rom_error_t, verify,
               (uint32_t, const owner_keydata_t *,
                const ecdsa_p256_signature_t *,
-               const sigverify_spx_signature_t *, const void *, size_t,
-               const void *, size_t, const void *, size_t,
+               const sigverify_spx_signature_t *,
+               const sigverify_mldsa_signature_t *,
+               const sigverify_mldsa_key_t *, const uint32_t *, const void *,
+               size_t, const void *, size_t, const void *, size_t,
                const hmac_digest_t *, uint32_t *));
 };
 

@@ -1168,13 +1168,16 @@ testing::Values(
     std::make_tuple(kOwnershipKeyAlgEcdsaP256, kErrorOk),
     std::make_tuple(kOwnershipKeyAlgHybridSpxPure, kErrorOk),
     std::make_tuple(kOwnershipKeyAlgHybridSpxPrehash, kErrorOk),
+    std::make_tuple(kOwnershipKeyAlgHybridMldsaPure, kErrorOk),
     // Currently unsupported algorithms:
     std::make_tuple(kOwnershipKeyAlgSpxPure, kErrorOwnershipInvalidAlgorithm),
     std::make_tuple(kOwnershipKeyAlgSpxPrehash, kErrorOwnershipInvalidAlgorithm),
     std::make_tuple(kOwnershipKeyAlgSq20Pure, kErrorOwnershipInvalidAlgorithm),
     std::make_tuple(kOwnershipKeyAlgSq20Prehash, kErrorOwnershipInvalidAlgorithm),
     std::make_tuple(kOwnershipKeyAlgHybridSq20Pure, kErrorOwnershipInvalidAlgorithm),
-    std::make_tuple(kOwnershipKeyAlgHybridSq20Prehash, kErrorOwnershipInvalidAlgorithm)
+    std::make_tuple(kOwnershipKeyAlgHybridSq20Prehash, kErrorOwnershipInvalidAlgorithm),
+    // Pure ML-DSA-87 (no ECDSA component) is not currently accepted.
+    std::make_tuple(kOwnershipKeyAlgMldsaPure, kErrorOwnershipInvalidAlgorithm)
 ));
 // clang-format on
 

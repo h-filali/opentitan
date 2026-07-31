@@ -26,6 +26,7 @@ cc_library(
         "//sw/device/lib/base:bitfield",
         "//sw/device/silicon_creator/lib:nonce",
         "//sw/device/silicon_creator/lib/sigverify:ecdsa_p256_key",
+        "//sw/device/silicon_creator/lib/sigverify:mldsa_key",
         "//sw/device/silicon_creator/lib/sigverify:spx_key",
     ],
 )
@@ -296,6 +297,8 @@ dual_cc_library(
     ),
     deps = dual_inputs(
         device = [
+            "//sw/device/lib/base:macros",
+            "//sw/device/silicon_creator/lib:otbn_boot_services",
             "//sw/device/silicon_creator/lib/sigverify",
         ],
         host = [
@@ -307,6 +310,7 @@ dual_cc_library(
             ":datatypes",
             "//sw/device/silicon_creator/lib/base:util",
             "//sw/device/silicon_creator/lib/drivers:hmac",
+            "//sw/device/silicon_creator/lib/sigverify:mldsa_key",
             "//sw/device/silicon_creator/lib:error",
         ],
     ),

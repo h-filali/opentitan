@@ -11,6 +11,7 @@
 #include "sw/device/lib/base/macros.h"
 #include "sw/device/silicon_creator/lib/nonce.h"
 #include "sw/device/silicon_creator/lib/sigverify/ecdsa_p256_key.h"
+#include "sw/device/silicon_creator/lib/sigverify/mldsa_key.h"
 #include "sw/device/silicon_creator/lib/sigverify/spx_key.h"
 
 #ifdef __cplusplus
@@ -23,16 +24,40 @@ typedef struct hybrid_key {
 } hybrid_key_t;
 
 /**
- * An owner_key can be either a ECDSA P256 or SPX+ key.  The type of the key
- * material will be determined by a separate field on the owner block
+ * Hybrid ECDSA & ML-DSA-87 public key.
+ *
+ * `mldsa_digest` is a SHA3-256 digest of the ML-DSA-87 public key, not the key
+ * itself ML-DSA-87 keys are far too large for this fixed-size struct. The full
+ * key must be delivered separately (e.g. via a manifest extension) and
+ * validated against this digest before use.
+ */
+typedef struct hybrid_mldsa_key {
+  ecdsa_p256_public_key_t ecdsa;
+  uint32_t mldsa_digest[kSigverifyMldsaKeyDigestWords];
+} hybrid_mldsa_key_t;
+
+static_assert(sizeof(hybrid_mldsa_key_t) == sizeof(hybrid_key_t),
+              "hybrid_mldsa_key_t must be the same size as hybrid_key_t to "
+              "share the owner_keydata_t union slot.");
+
+/**
+ * An owner_key can be either a ECDSA P256, SPX+, or ML-DSA-87 key. The type
+ * of the key material will be determined by a separate field on the owner
+ * block.
  */
 typedef union owner_key_data {
   /** ECDSA P256 public key */
   ecdsa_p256_public_key_t ecdsa;
   /** SPHINCS+ public key */
   sigverify_spx_key_t spx;
+  /**
+   * SHA3-256 digest of an ML-DSA-87 public key.
+   */
+  uint32_t mldsa_digest[kSigverifyMldsaKeyDigestWords];
   /** Hybrid ECDSA & SPHINCS+ public key */
   hybrid_key_t hybrid;
+  /** Hybrid ECDSA & ML-DSA-87 public key (digest). */
+  hybrid_mldsa_key_t hybrid_mldsa;
   /** Enough space to hold an ECDSA key and a SPX+ key for hybrid schemes */
   uint32_t raw[16 + 8];
   /** A key ID is the first 32-bit word of the key data */
@@ -83,14 +108,29 @@ typedef enum ownership_key_alg {
   // Key algorithm Hybrid P256 & SPX+ Prehashed SHA256: `HqS2`
   kOwnershipKeyAlgHybridSq20Prehash = 0x32537148,
 
+  /** Key algorithm ML-DSA-87: `M+Pu`. */
+  kOwnershipKeyAlgMldsaPure = 0x75502b4d,
+  /**
+   * Key algorithm Hybrid P256 & ML-DSA-87: `J+Pu`.
+   *
+   * Uses a distinct category ('J') from `kOwnershipKeyAlgCategoryHybrid`
+   * ('H', ECDSA+SPX+) so `owner_verify()` can tell which second algorithm to
+   * dispatch to. The letter itself has no other significance.
+   */
+  kOwnershipKeyAlgHybridMldsaPure = 0x75502b4a,
+
   /** Key algorithm category mask */
   kOwnershipKeyAlgCategoryMask = 0xFF,
   /** Key algorithm category for ECDSA: `P...` */
   kOwnershipKeyAlgCategoryEcdsa = 0x50,
   /** Key algorithm category for Sphincs+: `S...` */
   kOwnershipKeyAlgCategorySpx = 0x53,
-  /** Key algorithm category for Hybrid: `H...` */
+  /** Key algorithm category for Hybrid ECDSA & SPHINCS+: `H...` */
   kOwnershipKeyAlgCategoryHybrid = 0x48,
+  /** Key algorithm category for ML-DSA-87: `M...`. */
+  kOwnershipKeyAlgCategoryMldsa = 0x4D,
+  /** Key algorithm category for Hybrid ECDSA & ML-DSA-87: `J...`. */
+  kOwnershipKeyAlgCategoryHybridMldsa = 0x4A,
 } ownership_key_alg_t;
 
 typedef enum ownership_update_mode {
