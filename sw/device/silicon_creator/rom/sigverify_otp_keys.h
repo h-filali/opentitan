@@ -22,6 +22,8 @@ enum {
   kSigVerifyOtpKeysEcdsaCount = 4,
   /**Maximum number of SPX keys supported in OTP. */
   kSigVerifyOtpKeysSpxCount = 4,
+  /**Maximum number of ML-DSA-87 key digests supported in OTP. */
+  kSigVerifyOtpKeysMldsaCount = 4,
 };
 
 /**
@@ -43,7 +45,11 @@ typedef struct sigverify_otp_keys {
    */
   sigverify_rom_spx_key_t spx[kSigVerifyOtpKeysSpxCount];
   /**
-   * HMAC digest of the ECDSA and SPX keys.
+   * ML-DSA-87 key digests (see `sigverify_rom_mldsa_key_t`).
+   */
+  sigverify_rom_mldsa_key_t mldsa[kSigVerifyOtpKeysMldsaCount];
+  /**
+   * HMAC digest of the ECDSA, SPX, and ML-DSA-87 keys.
    */
   hmac_digest_t integrity_measurement;
 } sigverify_otp_keys_t;
@@ -66,6 +72,10 @@ typedef struct sigverify_otp_key_states {
    * State of the SPX keys.
    */
   uint32_t spx[kSigVerifyOtpKeysSpxCount];
+  /**
+   * State of the ML-DSA-87 key digests.
+   */
+  uint32_t mldsa[kSigVerifyOtpKeysMldsaCount];
 } sigverify_otp_key_states_t;
 
 /**

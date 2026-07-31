@@ -929,16 +929,52 @@
                             size: "4"
                         },
                         {
+                            name: "ROT_CREATOR_AUTH_CODESIGN_MLDSA_KEY_TYPE0",
+                            size: "4"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_CODESIGN_MLDSA_KEY_DIGEST0",
+                            size: "32"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_CODESIGN_MLDSA_KEY_TYPE1",
+                            size: "4"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_CODESIGN_MLDSA_KEY_DIGEST1",
+                            size: "32"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_CODESIGN_MLDSA_KEY_TYPE2",
+                            size: "4"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_CODESIGN_MLDSA_KEY_DIGEST2",
+                            size: "32"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_CODESIGN_MLDSA_KEY_TYPE3",
+                            size: "4"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_CODESIGN_MLDSA_KEY_DIGEST3",
+                            size: "32"
+                        },
+                        {
                             name: "ROT_CREATOR_AUTH_CODESIGN_BLOCK_SHA2_256_HASH",
                             size: "32"
                         }
                    ]
                    desc: '''
-                         This OTP partition is used to store four P-256 keys
-                         and four Sphincs+ keys. The partition requires 464
-                         bytes of software visible storage. The partition is
-                         locked at manufacturing time to protect against
-                         malicious write attempts.
+                         This OTP partition is used to store four P-256 keys,
+                         four Sphincs+ keys, and four SHA3-256 digests of
+                         ML-DSA-87 keys (ML-DSA-87 public keys are too large to
+                         store directly in OTP, so only a digest is kept here and
+                         the full key is delivered via the ROM_EXT manifest and
+                         validated against this digest before use). The partition
+                         requires 608 bytes of software visible storage. The
+                         partition is locked at manufacturing time to protect
+                         against malicious write attempts.
                          '''
         }
         {
@@ -984,6 +1020,22 @@
                         },
                         {
                             name: "ROT_CREATOR_AUTH_STATE_SPX_KEY3",
+                            size: "4"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_STATE_MLDSA_KEY0",
+                            size: "4"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_STATE_MLDSA_KEY1",
+                            size: "4"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_STATE_MLDSA_KEY2",
+                            size: "4"
+                        },
+                        {
+                            name: "ROT_CREATOR_AUTH_STATE_MLDSA_KEY3",
                             size: "4"
                         },
                    ]

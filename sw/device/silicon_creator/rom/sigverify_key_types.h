@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include "sw/device/silicon_creator/lib/sigverify/ecdsa_p256_key.h"
+#include "sw/device/silicon_creator/lib/sigverify/mldsa_key.h"
 #include "sw/device/silicon_creator/lib/sigverify/rsa_key.h"
 #include "sw/device/silicon_creator/lib/sigverify/spx_key.h"
 
@@ -262,6 +263,55 @@ typedef union sigverify_rom_spx_key {
 static_assert(
     sizeof(sigverify_rom_spx_key_entry_t) == sizeof(sigverify_rom_spx_key_t),
     "Size of an SPX public key entry must be equal to the size of a key");
+
+/**
+ * A digest of an ML-DSA-87 public key, stored in ROM in place of the full
+ * key.
+ *
+ * This struct must start with the common initial sequence
+ * `sigverify_rom_key_header_t`. The `key_id` word aliases the first word of
+ * the *digest*, not of the full public key. The full key is not present in
+ * ROM/OTP at all.
+ */
+typedef struct sigverify_rom_mldsa_key_entry {
+  /**
+   * Type of the key.
+   */
+  sigverify_key_type_t key_type;
+  /**
+   * KMAC/SHA3-256 digest of the ML-DSA-87 public key.
+   */
+  uint32_t digest[kSigverifyMldsaKeyDigestWords];
+} sigverify_rom_mldsa_key_entry_t;
+
+OT_ASSERT_MEMBER_OFFSET(sigverify_rom_mldsa_key_entry_t, key_type, 0);
+OT_ASSERT_MEMBER_OFFSET(sigverify_rom_mldsa_key_entry_t, digest[0], 4);
+static_assert(offsetof(sigverify_rom_key_header_t, key_type) ==
+                  offsetof(sigverify_rom_mldsa_key_entry_t, key_type),
+              "Invalid key_type offset.");
+static_assert(offsetof(sigverify_rom_key_header_t, key_id) ==
+                  offsetof(sigverify_rom_mldsa_key_entry_t, digest[0]),
+              "Invalid key_id offset.");
+
+/**
+ * Union type to inspect the common initial sequence of ML-DSA-87 key digests
+ * stored in ROM.
+ */
+typedef union sigverify_rom_mldsa_key {
+  /**
+   * Common initial sequence.
+   */
+  sigverify_rom_key_header_t key_header;
+  /**
+   * Actual ML-DSA-87 key digest entry.
+   */
+  sigverify_rom_mldsa_key_entry_t entry;
+} sigverify_rom_mldsa_key_t;
+
+static_assert(
+    sizeof(sigverify_rom_mldsa_key_entry_t) == sizeof(sigverify_rom_mldsa_key_t),
+    "Size of an ML-DSA-87 key digest entry must be equal to the size of a "
+    "key");
 
 #ifdef __cplusplus
 }  // extern "C"

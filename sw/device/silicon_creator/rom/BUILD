@@ -432,6 +432,7 @@ cc_library(
     hdrs = ["sigverify_key_types.h"],
     deps = [
         "//sw/device/silicon_creator/lib/sigverify:ecdsa_p256_key",
+        "//sw/device/silicon_creator/lib/sigverify:mldsa_key",
         "//sw/device/silicon_creator/lib/sigverify:rsa_key",
         "//sw/device/silicon_creator/lib/sigverify:spx_key",
     ],
@@ -473,6 +474,27 @@ cc_library(
         "//sw/device/silicon_creator/lib/drivers:lifecycle",
         "//sw/device/silicon_creator/lib/sigverify",
         "//sw/device/silicon_creator/lib/sigverify:spx_key",
+    ],
+)
+
+cc_library(
+    name = "sigverify_keys_mldsa",
+    srcs = [
+        "sigverify_keys_mldsa.c",
+    ],
+    hdrs = [
+        "sigverify_keys_mldsa.h",
+    ],
+    deps = [
+        ":sigverify_key_types",
+        ":sigverify_otp_keys",
+        "//hw/top:otp_ctrl_c_regs",
+        "//sw/device/lib/base:macros",
+        "//sw/device/silicon_creator/lib:error",
+        "//sw/device/silicon_creator/lib/drivers:kmac",
+        "//sw/device/silicon_creator/lib/drivers:lifecycle",
+        "//sw/device/silicon_creator/lib/sigverify",
+        "//sw/device/silicon_creator/lib/sigverify:mldsa_key",
     ],
 )
 
