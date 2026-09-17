@@ -17,6 +17,12 @@ class csrng_monitor extends dv_reactive_monitor #(
   // Analysis port for the csrng_rsp_sts.
   uvm_analysis_port #(csrng_rsp_t) rsp_sts_ap;
 
+  // Analysis port that fires as soon as a command's header has been captured, i.e. before
+  // waiting for the command to complete. Used so a scoreboard can learn that a GEN command
+  // has started (and may later be aborted) before the full transaction is available on
+  // analysis_port.
+  uvm_analysis_port #(csrng_item) cmd_start_ap;
+
   uvm_tlm_analysis_fifo#(push_pull_item#(.HostDataWidth(csrng_pkg::CmdBusWidth)))
       csrng_cmd_fifo;
 
@@ -27,6 +33,7 @@ class csrng_monitor extends dv_reactive_monitor #(
 
     csrng_cmd_fifo = new("csrng_cmd_fifo", this);
     rsp_sts_ap     = new("rsp_sts_ap", this);
+    cmd_start_ap   = new("cmd_start_ap", this);
   endfunction
 
   task run_phase(uvm_phase phase);
@@ -75,6 +82,9 @@ class csrng_monitor extends dv_reactive_monitor #(
             end else begin
               cs_item.cmd_data_q.push_back(item.h_data);
             end
+          end
+          if (cs_item.acmd == csrng_pkg::GEN) begin
+            cmd_start_ap.write(cs_item);
           end
           // Fork to make sure this task is not blocked in case of an error status response.
           fork

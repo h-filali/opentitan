@@ -28,6 +28,9 @@ class csrng_scoreboard extends cip_base_scoreboard #(
   bit                        genbits_fips_received[];
   mubi4_t                    cmd_flag0_previous[];
   csrng_pkg::csrng_cmd_sts_e cmd_sts[];
+  // Tracks whether a GEN command is currently outstanding (dispatched but not yet completed)
+  // for a given app, so a GEN_ABORT register write can be correlated to it.
+  bit                        gen_outstanding[];
 
   bit [3:0]            int_state_num;
   bit [MaxNumApps-1:0] int_state_read_enable;
@@ -37,6 +40,8 @@ class csrng_scoreboard extends cip_base_scoreboard #(
   // TLM agent fifos
   uvm_tlm_analysis_fifo#(push_pull_item#(.HostDataWidth(FIPS_CSRNG_BUS_WIDTH)))   entropy_src_fifo;
   uvm_tlm_analysis_fifo#(csrng_item)   csrng_cmd_fifo[];
+  // Fires as soon as a HW app's GEN command header has been observed, ahead of completion.
+  uvm_tlm_analysis_fifo#(csrng_item)   csrng_cmd_start_fifo[];
 
   `uvm_component_new
 
@@ -51,16 +56,19 @@ class csrng_scoreboard extends cip_base_scoreboard #(
     es_data       = new[cfg.m_num_apps];
     fips          = new[cfg.m_num_apps];
     cmd_sts       = new[cfg.m_num_apps]('{default: CMD_STS_SUCCESS});
+    gen_outstanding = new[cfg.m_num_apps];
 
     genbits_fips_previous = new[cfg.m_num_apps];
     genbits_fips_received = new[cfg.m_num_apps];
     cmd_flag0_previous    = new[cfg.m_num_apps];
 
-    csrng_cmd_fifo   = new[cfg.m_num_hw_apps];
-    entropy_src_fifo = new("entropy_src_fifo", this);
+    csrng_cmd_fifo       = new[cfg.m_num_hw_apps];
+    csrng_cmd_start_fifo = new[cfg.m_num_hw_apps];
+    entropy_src_fifo     = new("entropy_src_fifo", this);
 
     for (int i = 0; i < cfg.m_num_hw_apps; i++) begin
-      csrng_cmd_fifo[i] = new($sformatf("csrng_cmd_fifo[%0d]", i), this);
+      csrng_cmd_fifo[i]       = new($sformatf("csrng_cmd_fifo[%0d]", i), this);
+      csrng_cmd_start_fifo[i] = new($sformatf("csrng_cmd_start_fifo[%0d]", i), this);
     end
 
     if (!uvm_config_db#(virtual csrng_cov_if)::get(null, "*.env" , "csrng_cov_if", cov_vif)) begin
@@ -86,7 +94,28 @@ class csrng_scoreboard extends cip_base_scoreboard #(
         begin
           process_csrng_cmd_fifo(j);
         end
+        begin
+          process_csrng_cmd_start_fifo(j);
+        end
       join_none;
+    end
+  endtask
+
+  // Records that a GEN command has started for a HW app, ahead of it completing, so a
+  // GEN_ABORT register write can be correlated against it.
+  task automatic process_csrng_cmd_start_fifo(uint app);
+    csrng_item started_item;
+    forever begin
+      csrng_cmd_start_fifo[app].get(started_item);
+      // Real hardware only dispatches this GEN to ctr_drbg if the instance is actually
+      // instantiated; otherwise cmd_stage synthesizes an immediate CMD_STS_INVALID_CMD_SEQ ack
+      // without ever starting a generate (mirrors the INS/RES/UPD sequencing checks elsewhere).
+      if (!cfg.status[app]) begin
+        cmd_sts[app] = CMD_STS_INVALID_CMD_SEQ;
+        set_exp_alert(.alert_name("recov_alert"), .is_fatal(0));
+      end else begin
+        gen_outstanding[app] = 1'b1;
+      end
     end
   endtask
 
@@ -102,7 +131,10 @@ class csrng_scoreboard extends cip_base_scoreboard #(
       hw_genbits = '0;
       more_cmd_data = 0;
       for (int i = 0; i < cfg.m_num_apps; i++) begin
-        if (i != cfg.m_sw_app_idx) csrng_cmd_fifo[i].flush();
+        if (i != cfg.m_sw_app_idx) begin
+          csrng_cmd_fifo[i].flush();
+          csrng_cmd_start_fifo[i].flush();
+        end
         es_item_q[i].delete();
         hw_genbits_reg_q.delete();
         prd_genbits_q[i].delete();
@@ -111,6 +143,7 @@ class csrng_scoreboard extends cip_base_scoreboard #(
         es_data[i] = '0;
         fips[i] = '0;
         cmd_sts[i] = CMD_STS_SUCCESS;
+        gen_outstanding[i] = 1'b0;
       end
       csr_spinwait(.ptr(ral.ctrl.enable),
                    .exp_data(MuBi4True),
@@ -229,6 +262,12 @@ class csrng_scoreboard extends cip_base_scoreboard #(
               cs_data[sw_app] = (cs_item[sw_app].cmd_data_q[i] << i * CmdBusWidth) +
                   cs_data[sw_app];
             end
+            // Reset to the default expectation for this command; the processing below
+            // overrides it where a specific error condition applies. Without this, an error
+            // status predicted for one command would incorrectly persist as the prediction for
+            // a later, valid command.
+            cmd_sts[sw_app] = CMD_STS_SUCCESS;
+
             case (cs_item[sw_app].acmd)
               INS: begin
                 // Record previous flag0 only after INS or RES commands.
@@ -274,6 +313,21 @@ class csrng_scoreboard extends cip_base_scoreboard #(
               UNI: begin
                 ctr_drbg_uninstantiate(sw_app);
               end
+              GEN: begin
+                // Real hardware only dispatches this GEN to ctr_drbg if the instance is
+                // actually instantiated; otherwise cmd_stage synthesizes an immediate
+                // CMD_STS_INVALID_CMD_SEQ ack without ever starting a generate (mirrors the
+                // INS/RES/UPD sequencing checks above).
+                if (!cfg.status[sw_app]) begin
+                  cmd_sts[sw_app] = CMD_STS_INVALID_CMD_SEQ;
+                  set_exp_alert(.alert_name("recov_alert"), .is_fatal(0));
+                end else begin
+                  // Mark the GEN command as outstanding so a GEN_ABORT write to this app can be
+                  // correlated against it. The actual generate/uninstantiate prediction happens
+                  // once the command completes, see the "genbits" and "sw_cmd_sts" cases below.
+                  gen_outstanding[sw_app] = 1'b1;
+                end
+              end
               default: begin
                 if (!GEN) begin
                   // Expect the next acknowledgement to return an error.
@@ -286,6 +340,37 @@ class csrng_scoreboard extends cip_base_scoreboard #(
             fips[sw_app]    = 'h0;
           end
         end
+      end
+      "gen_abort_regwen": begin
+      end
+      // GEN_ABORT is a non-compact multireg: one register per app (gen_abort_0/1/2), each
+      // carrying that single app's 4-bit field in bits[3:0] - unlike a compacted multireg,
+      // a write here can only ever touch one app.
+      "gen_abort_0": begin
+        if (addr_phase_write) predict_gen_abort_write(0, item.a_data);
+        // Self-clearing hw2reg field: the value predicted from the write does not reflect
+        // what a subsequent read will observe.
+        do_read_check = 1'b0;
+      end
+      "gen_abort_1": begin
+        if (addr_phase_write) predict_gen_abort_write(1, item.a_data);
+        do_read_check = 1'b0;
+      end
+      "gen_abort_2": begin
+        if (addr_phase_write) predict_gen_abort_write(2, item.a_data);
+        do_read_check = 1'b0;
+      end
+      // GEN_ABORT_STATUS is likewise one register per app, set by hardware asynchronously
+      // when that app's abort completes; the scoreboard doesn't independently predict it
+      // (same as recov_alert_sts), so just skip the generic RAL-mirror read check.
+      "gen_abort_status_0": begin
+        do_read_check = 1'b0;
+      end
+      "gen_abort_status_1": begin
+        do_read_check = 1'b0;
+      end
+      "gen_abort_status_2": begin
+        do_read_check = 1'b0;
       end
       "reseed_interval": begin
       end
@@ -305,6 +390,27 @@ class csrng_scoreboard extends cip_base_scoreboard #(
           // to be equal to the pre-calculated value in cmd_sts.
           if (item.d_data[2] == 1'b1) begin
             `DV_CHECK_EQ(cmd_sts[sw_app], item.d_data[5:3])
+            // A GEN command that got aborted (via !!GEN_ABORT) may complete with fewer than
+            // glen genbits ever read, so the glen-triggered prediction in the "genbits" case
+            // below never fires for it. Finish predicting it here instead, based on however
+            // many genbits were actually collected. For a normal completion, gen_outstanding
+            // is already cleared by the time this ack is seen, so this is a no-op.
+            if (cs_item[sw_app].acmd == GEN && gen_outstanding[sw_app]) begin
+              for (int i = 0; i < cs_item[sw_app].cmd_data_q.size(); i++) begin
+                cs_data[sw_app] = (cs_item[sw_app].cmd_data_q[i] << i * CmdBusWidth) +
+                    cs_data[sw_app];
+              end
+              ctr_drbg_generate(sw_app, cs_item[sw_app].glen, cs_data[sw_app]);
+              for (int i = 0; i < cs_item[sw_app].genbits_q.size(); i++) begin
+                `DV_CHECK_EQ_FATAL(cs_item[sw_app].genbits_q[i], prd_genbits_q[sw_app][i])
+              end
+              if (csrng_pkg::csrng_cmd_sts_e'(item.d_data[5:3]) == CMD_STS_GEN_ABORTED) begin
+                ctr_drbg_uninstantiate(sw_app);
+              end
+              prd_genbits_q[sw_app].delete();
+              cs_data[sw_app] = 'h0;
+              gen_outstanding[sw_app] = 1'b0;
+            end
           end
         end
       end
@@ -366,6 +472,7 @@ class csrng_scoreboard extends cip_base_scoreboard #(
             end
             prd_genbits_q[sw_app].delete();
             cs_data[sw_app] = 'h0;
+            gen_outstanding[sw_app] = 1'b0;
           end
         end
       end
@@ -435,6 +542,22 @@ class csrng_scoreboard extends cip_base_scoreboard #(
     end
   endtask
 
+  // Predicts the effect of a write to one of the per-app GEN_ABORT registers (gen_abort_0/1/2).
+  function automatic void predict_gen_abort_write(uint app, uvm_reg_data_t a_data);
+    mubi4_t val = mubi4_t'(a_data[3:0]);
+    // A write while GEN_ABORT_REGWEN is locked is a complete no-op in hardware
+    // (gen_abort_gated_we = gen_abort_we & regwen_qs), so don't predict an abort for it.
+    if (`gmv(ral.gen_abort_regwen) != 1'b1) return;
+    // Only a strict MuBi4True while a GEN is outstanding for this app aborts it. A MuBi4True
+    // with no GEN outstanding (GEN_ABORT_INVALID_ALERT), or any other value that isn't a
+    // canonical MuBi4False either (GEN_ABORT_FIELD_ALERT), raises the same recov_alert pin.
+    if (val == MuBi4True && gen_outstanding[app]) begin
+      cmd_sts[app] = CMD_STS_GEN_ABORTED;
+    end else if (val != MuBi4False) begin
+      set_exp_alert(.alert_name("recov_alert"), .is_fatal(0));
+    end
+  endfunction
+
   virtual function void reset(string kind = "HARD");
     super.reset(kind);
     // reset local fifos queues and variables
@@ -471,6 +594,7 @@ class csrng_scoreboard extends cip_base_scoreboard #(
     // If the instance was not instantiated then the next acknowledge should return an error.
     if (!cfg.status[app]) begin
       cmd_sts[app] = CMD_STS_INVALID_CMD_SEQ;
+      set_exp_alert(.alert_name("recov_alert"), .is_fatal(0));
     end
     for (int i = 0; i < (CSRNG_BUS_WIDTH/BLOCK_LEN); i++) begin
       if (CTR_LEN < BLOCK_LEN) begin
@@ -504,15 +628,20 @@ class csrng_scoreboard extends cip_base_scoreboard #(
     bit compliance_previous = cfg.compliance[app];
 
     `uvm_info(`gfn, $sformatf("Instantiate of app %0d", app), UVM_MEDIUM)
+    `uvm_info(`gfn, $sformatf("DEBUG instantiate app %0d: entropy_input=0x%0h additional_input=0x%0h",
+                              app, entropy_input, additional_input), UVM_LOW)
     // If the instance was already instantiated then the next acknowledge should return an error.
     if (cfg.status[app]) begin
       cmd_sts[app] = CMD_STS_INVALID_CMD_SEQ;
+      set_exp_alert(.alert_name("recov_alert"), .is_fatal(0));
     end
     seed_material  = entropy_input ^ additional_input;
     cfg.key[app] = 'h0;
     cfg.v[app]   = 'h0;
     cfg.status[app]         = 1'b1;
     ctr_drbg_update(app, seed_material);
+    `uvm_info(`gfn, $sformatf("DEBUG post-instantiate app %0d: seed_material=0x%0h key=0x%0h v=0x%0h",
+                              app, seed_material, cfg.key[app], cfg.v[app]), UVM_LOW)
     cfg.reseed_counter[app] = 1'b0;
     fips_force = `gmv(ral.fips_force);
     cfg.compliance[app]     = fips || ((`gmv(ral.ctrl.fips_force_enable) == MuBi4True) &&
@@ -558,6 +687,8 @@ class csrng_scoreboard extends cip_base_scoreboard #(
     bit [63:0]                    mod_val;
 
     `uvm_info(`gfn, $sformatf("Generate of app %0d", app), UVM_MEDIUM)
+    `uvm_info(`gfn, $sformatf("DEBUG generate app %0d: glen=%0d additional_input=0x%0h key=0x%0h v=0x%0h",
+                              app, glen, additional_input, cfg.key[app], cfg.v[app]), UVM_LOW)
     if (cfg.reseed_counter[app] == `gmv(ral.reseed_interval)) begin
       cmd_sts[app] = CMD_STS_RESEED_CNT_EXCEEDED;
     end
@@ -638,6 +769,11 @@ class csrng_scoreboard extends cip_base_scoreboard #(
       end
       cov_vif.cg_cmds_sample(app, cs_item[app], cmd_flag0_previous[app]);
 
+      // Reset to the default expectation for this command; the processing below overrides it
+      // where a specific error condition applies. Without this, an error status predicted for
+      // one command would incorrectly persist as the prediction for a later, valid command.
+      cmd_sts[app] = CMD_STS_SUCCESS;
+
       case (cs_item[app].acmd)
         INS: begin
           // Record previous flag0 only after INS or RES commands.
@@ -660,22 +796,33 @@ class csrng_scoreboard extends cip_base_scoreboard #(
           ctr_drbg_instantiate(app, es_data[app], cs_data[app], fips[app]);
         end
         GEN: begin
-          ctr_drbg_generate(app, cs_item[app].glen, cs_data[app]);
-          for (int i = 0; i < cs_item[app].glen; i++) begin
-            `DV_CHECK_EQ_FATAL(cs_item[app].genbits_q[i], prd_genbits_q[app][i])
-            // Check if the FIPS compliance bit is set correctly.
-            `DV_CHECK_EQ_FATAL(cs_item[app].fips_q[i], cfg.compliance[app])
-            cov_vif.cg_csrng_genbits_sample(
-                .genbits_fips(cs_item[app].fips_q[i]),
-                .genbits_fips_previous(genbits_fips_previous[app]),
-                .app(app),
-                .valid(1'b1),
-                .record_transition(genbits_fips_received[app]));
-            genbits_fips_previous[cfg.m_sw_app_idx] = cs_item[app].fips_q[i];
-            genbits_fips_received[cfg.m_sw_app_idx] = 1'b1;
+          // gen_outstanding is only set for a GEN that was actually dispatched to ctr_drbg (see
+          // process_csrng_cmd_start_fifo). A GEN rejected with CMD_STS_INVALID_CMD_SEQ never
+          // reaches ctr_drbg on real hardware and produces no genbits, so nothing to predict.
+          if (gen_outstanding[app]) begin
+            ctr_drbg_generate(app, cs_item[app].glen, cs_data[app]);
+            // A GEN command that got aborted (via !!GEN_ABORT) completes with fewer than glen
+            // genbits ever delivered - only compare however many actually arrived.
+            for (int i = 0; i < cs_item[app].genbits_q.size(); i++) begin
+              `DV_CHECK_EQ_FATAL(cs_item[app].genbits_q[i], prd_genbits_q[app][i])
+              // Check if the FIPS compliance bit is set correctly.
+              `DV_CHECK_EQ_FATAL(cs_item[app].fips_q[i], cfg.compliance[app])
+              cov_vif.cg_csrng_genbits_sample(
+                  .genbits_fips(cs_item[app].fips_q[i]),
+                  .genbits_fips_previous(genbits_fips_previous[app]),
+                  .app(app),
+                  .valid(1'b1),
+                  .record_transition(genbits_fips_received[app]));
+              genbits_fips_previous[cfg.m_sw_app_idx] = cs_item[app].fips_q[i];
+              genbits_fips_received[cfg.m_sw_app_idx] = 1'b1;
+            end
+            if (cs_item[app].status == CMD_STS_GEN_ABORTED) begin
+              ctr_drbg_uninstantiate(app);
+            end
+            // Deletes the predicted genbits before the next comparison.
+            prd_genbits_q[app].delete();
+            gen_outstanding[app] = 1'b0;
           end
-          // Deletes the predicted genbits before the next comparison.
-          prd_genbits_q[app].delete();
         end
         UNI: begin
           ctr_drbg_uninstantiate(app);

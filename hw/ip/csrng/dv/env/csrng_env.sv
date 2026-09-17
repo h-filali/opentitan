@@ -77,6 +77,8 @@ class csrng_env extends cip_base_env #(
         scoreboard.entropy_src_fifo.analysis_export);
       for (int i = 0; i < cfg.m_num_hw_apps; i++) begin
         m_edn_agent[i].monitor.analysis_port.connect(scoreboard.csrng_cmd_fifo[i].analysis_export);
+        m_edn_agent[i].monitor.cmd_start_ap.connect(
+            scoreboard.csrng_cmd_start_fifo[i].analysis_export);
       end
     end
     if (cfg.is_active) begin

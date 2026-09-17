@@ -98,6 +98,48 @@ class csrng_regwen_vseq extends csrng_base_vseq;
 
     super.body();
 
+    // GEN_ABORT_REGWEN
+    // This must run after super.body() above: it's the first check in this vseq to issue a
+    // real command (via send_cmd_req), which relies on cov_vif having already been set up by
+    // csrng_base_vseq::body().
+    csr_rd(.ptr(ral.gen_abort_regwen), .value(chk_bit), .blocking(1));
+    if (chk_bit == 1'b1) begin
+      csrng_item ins_item = csrng_item::type_id::create("ins_item");
+      csrng_item gen_item = csrng_item::type_id::create("gen_item");
+
+      // The register is still writeable. Lock it before checking that a GEN_ABORT write can
+      // no longer abort an ongoing Generate command.
+      csr_wr(.ptr(ral.gen_abort_regwen), .value(1'b0), .blocking(1));
+      csr_rd(.ptr(ral.gen_abort_regwen), .value(chk_bit), .blocking(1));
+      if (chk_bit != 1'b0) begin
+        `uvm_fatal(`gfn, "Was unable to set GEN_ABORT_REGWEN to 0")
+      end
+
+      csr_wr(.ptr(ral.gen_abort_regwen), .value(1'b1), .blocking(1));
+      csr_rd(.ptr(ral.gen_abort_regwen), .value(chk_bit), .blocking(1));
+      if (chk_bit == 1'b1) begin
+        `uvm_fatal(`gfn, "Was able to put GEN_ABORT_REGWEN back to 1")
+      end
+
+      `DV_CHECK_RANDOMIZE_WITH_FATAL(ins_item,
+                                     ins_item.acmd  == csrng_pkg::INS;
+                                     ins_item.flags == MuBi4True;
+                                     ins_item.clen  == 4'hc;)
+      send_cmd_req(cfg.m_sw_app_idx, ins_item);
+
+      gen_item.acmd  = csrng_pkg::GEN;
+      gen_item.clen  = 'h0;
+      gen_item.flags = MuBi4True;
+      gen_item.glen  = 'h4;
+      fork
+        send_cmd_req(cfg.m_sw_app_idx, gen_item, .exp_sts(CMD_STS_SUCCESS));
+      join_none
+      // Wait until the Generate is genuinely ongoing, then attempt (and fail) to abort it.
+      csr_spinwait_or_edn_rst_n(.ptr(ral.genbits_vld.genbits_vld), .exp_data(1'b1));
+      csr_wr(.ptr(ral.gen_abort[cfg.m_sw_app_idx].gen_abort), .value(MuBi4True), .blocking(1));
+      wait fork;
+    end
+
   endtask : body
 
 endclass : csrng_regwen_vseq

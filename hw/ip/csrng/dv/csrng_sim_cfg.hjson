@@ -102,6 +102,12 @@
     }
 
     {
+      name: csrng_gen_abort
+      uvm_test: csrng_base_test
+      uvm_test_seq: csrng_gen_abort_vseq
+    }
+
+    {
       name: csrng_stress_all_with_rand_reset
       reseed: 10
     }

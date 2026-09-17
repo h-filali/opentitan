@@ -11,3 +11,4 @@
 `include "csrng_alert_vseq.sv"
 `include "csrng_err_vseq.sv"
 `include "csrng_regwen_vseq.sv"
+`include "csrng_gen_abort_vseq.sv"
