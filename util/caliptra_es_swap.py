@@ -16,7 +16,8 @@ log = []
 # prims
 skip = {'prim_assert.sv','prim_assert_dummy_macros.svh','prim_assert_standard_macros.svh',
         'prim_assert_yosys_macros.svh','prim_assert_sec_cm.svh','prim_flop_macros.sv',
-        'prim_module_name_macros.svh','prim_pkg.sv'}
+        'prim_module_name_macros.svh','prim_pkg.sv',
+        'prim_mubi_pkg.sv'}  # OT's mubi pkg is a superset (mubi20..32) with identical encodings
 for f in sorted(os.listdir(f'{CAL}/src/caliptra_prim/rtl')):
     o = f.replace('caliptra_prim_', 'prim_', 1)
     if o in skip or not f.startswith('caliptra_prim_'): log.append(f'skip prim {f}'); continue
