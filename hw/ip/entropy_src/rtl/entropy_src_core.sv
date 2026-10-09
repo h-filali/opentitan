@@ -3037,6 +3037,7 @@ module entropy_src_core
   // Assertions
   //--------------------------------------------
 `ifdef INC_ASSERT
+`include "prim_macros.svh"
 
   // Assert that we request high quality entropy only when the rng_fips field of the conf register
   // is set to Mubi4True.

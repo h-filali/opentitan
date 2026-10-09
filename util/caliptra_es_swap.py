@@ -36,6 +36,11 @@ for f in ['sha3_pkg.sv','sha3.sv','sha3pad.sv','keccak_round.sv','keccak_2share.
 for f in sorted(os.listdir(f'{CAL}/src/entropy_src/rtl')):
     if f in ('entropy_src.sv','entropy_src_reg_top.sv','entropy_src_reg_pkg.sv'): continue
     put(f'{CAL}/src/entropy_src/rtl/{f}', f'{OT}/hw/ip/entropy_src/rtl/{f}'); log.append(f'es {f}')
+    if f == 'entropy_src_core.sv':
+        # Caliptra gets WITHIN_MARGIN from its assert macros, OpenTitan from prim_macros.svh.
+        p = f'{OT}/hw/ip/entropy_src/rtl/{f}'
+        c = open(p).read().replace('`ifdef INC_ASSERT\n', '`ifdef INC_ASSERT\n`include "prim_macros.svh"\n', 1)
+        open(p, 'w').write(c)
 # hjson
 open(f'{OT}/hw/ip/entropy_src/data/entropy_src.hjson','w').write(open(f'{CAL}/src/entropy_src/data/entropy_src.hjson').read())
 log.append('es hjson')
