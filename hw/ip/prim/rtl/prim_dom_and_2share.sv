@@ -1,4 +1,4 @@
-// Copyright lowRISC contributors (OpenTitan project).
+// Copyright lowRISC contributors.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -24,7 +24,6 @@
 //    = a1&b1  + (0              + a1&b0 + z0)
 
 `include "prim_assert.sv"
-
 module prim_dom_and_2share #(
   parameter int DW = 64, // Input width
   parameter bit Pipeline = 1'b0 // Enable full pipelining

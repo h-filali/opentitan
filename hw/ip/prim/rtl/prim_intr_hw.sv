@@ -9,12 +9,10 @@
 // externally-visible indications of of the interrupt state.
 //
 // This assumes the existence of three external controller registers, which
-// interface with this module via the standard reggen reg2hw/hw2reg signals. The 3 registers are:
+// interface with this module caliptra_via the standard reggen reg2hw/hw2reg signals. The 3 registers are:
 // - INTR_ENABLE : enables/masks the output of INTR_STATE as the intr_o signal
 // - INTR_STATE  : the current state of the interrupt (may be RO or W1C depending on "IntrT")
 // - INTR_TEST   : sw-access-only register which asserts the interrupt for testing purposes
-
-`include "prim_assert.sv"
 
 module prim_intr_hw # (
   // This module can be instantiated once per interrupt field (Width == 1), or
@@ -56,6 +54,8 @@ module prim_intr_hw # (
   // outgoing interrupt
   output logic [Width-1:0]  intr_o
 );
+
+  `include "prim_assert.sv"
 
   logic [Width-1:0] status; // incl. test
 

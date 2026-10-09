@@ -55,7 +55,7 @@ module prim_sparse_fsm_flop #(
     assign unused_err_o = 1'b0;
   `endif
 
-  // If ASSERT_PRIM_FSM_ERROR_TRIGGER_ALERT is declared, the unused_assert_connected signal will
+  // If CALIPTRA_ASSERT_PRIM_FSM_ERROR_TRIGGER_ALERT is declared, the unused_assert_connected signal will
   // be set to 1 and the below check will pass.
   // If the assertion is not declared however, the statement below will fail.
   `ifdef INC_ASSERT

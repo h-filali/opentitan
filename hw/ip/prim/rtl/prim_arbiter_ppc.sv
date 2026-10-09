@@ -1,4 +1,4 @@
-// Copyright lowRISC contributors (OpenTitan project).
+// Copyright lowRISC contributors.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -33,7 +33,7 @@ module prim_arbiter_ppc #(
   parameter bit EnDataPort = 1,
 
   // Derived parameters
-  localparam int IdxW = prim_util_pkg::vbits(N)
+  localparam int IdxW = $clog2(N)
 ) (
   input clk_i,
   input rst_ni,
@@ -65,6 +65,7 @@ module prim_arbiter_ppc #(
     assign idx_o    = '0;
 
   end else begin : gen_normal_case
+
     logic [N-1:0] masked_req;
     logic [N-1:0] ppc_out;
     logic [N-1:0] arb_req;
@@ -74,15 +75,20 @@ module prim_arbiter_ppc #(
     assign masked_req = mask & req_i;
     assign arb_req = (|masked_req) ? masked_req : req_i;
 
-    prim_leading_one_ppc #(
-      .N ( N )
-    ) u_leading_one (
-      .in_i          ( arb_req ),
-      .leading_one_o ( winner  ),
-      .ppc_out_o     ( ppc_out ),
-      .idx_o         ( idx_o   )
-    );
-    assign gnt_o   = (ready_i) ? winner : '0;
+    // PPC
+    //   Even below code looks O(n) but DC optimizes it to O(log(N))
+    //   Using Parallel Prefix Computation
+    always_comb begin
+      ppc_out[0] = arb_req[0];
+      for (int i = 1 ; i < N ; i++) begin
+        ppc_out[i] = ppc_out[i-1] | arb_req[i];
+      end
+    end
+
+    // Grant Generation: Leading-One detector
+    assign winner = ppc_out ^ {ppc_out[N-2:0], 1'b0};
+    assign gnt_o    = (ready_i) ? winner : '0;
+
     assign valid_o = |req_i;
     // Mask Generation
     assign mask_next = {ppc_out[N-2:0], 1'b0};
@@ -113,6 +119,15 @@ module prim_arbiter_ppc #(
       logic [DW-1:0] unused_data [N];
       assign unused_data = data_i;
     end
+
+    always_comb begin
+      idx_o = '0;
+      for (int unsigned i = 0 ; i < N ; i++) begin
+        if (winner[i]) begin
+          idx_o = i;
+        end
+      end
+    end
   end
 
   ////////////////
@@ -130,7 +145,7 @@ module prim_arbiter_ppc #(
       ##1 valid_o && ready_i && $past(ready_i) && $past(valid_o) &&
       |(req_i & ~((N'(1) << $past(idx_o)+1) - 1)) |->
       idx_o > $past(idx_o))
-  // we can only grant one requester at a time
+  // we can only grant one requestor at a time
   `ASSERT(CheckHotOne_A, $onehot0(gnt_o))
   // A grant implies that the sink is ready
   `ASSERT(GntImpliesReady_A, |gnt_o |-> ready_i)
@@ -170,7 +185,7 @@ end
   `ASSUME(KStable_M, ##1 $stable(k))
   `ASSUME(KRange_M, k < N)
   // this is used enable checking for stable and unstable ready_i and req_i signals in the same run.
-  // the symbolic variables act like a switch that the solver can turn on and off.
+  // the symbolic variables act like a switch that the solver can trun on and off.
   `ASSUME(ReadyIsStable_M, ##1 $stable(ReadyIsStable))
   `ASSUME(ReqsAreStable_M, ##1 $stable(ReqsAreStable))
   `ASSUME(ReadyStable_M, ##1 !ReadyIsStable || $stable(ready_i))

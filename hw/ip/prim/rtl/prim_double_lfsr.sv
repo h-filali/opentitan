@@ -6,6 +6,8 @@
 // The state vector of both LFSRs is constantly checked and an error is asserted if the
 // two states are inconsistent.
 
+`include "prim_assert.sv"
+
 module prim_double_lfsr #(
   // prim_lfsr parameters - refer to prim_lfsr for their meaning/
   parameter                    LfsrType     = "GAL_XOR",
@@ -103,7 +105,7 @@ module prim_double_lfsr #(
   assign err_o = lfsr_state[0] != lfsr_state[1];
 
   // This logic that will be assign to one, when user adds macro
-  // ASSERT_PRIM_DOUBLE_LFSR_ERROR_TRIGGER_ALERT to check the error with alert, in case that
+  // CALIPTRA_ASSERT_PRIM_DOUBLE_LFSR_ERROR_TRIGGER_ALERT to check the error with alert, in case that
   // prim_double_lfsr is used in design without adding this assertion check.
   `ifdef INC_ASSERT
   logic unused_assert_connected;

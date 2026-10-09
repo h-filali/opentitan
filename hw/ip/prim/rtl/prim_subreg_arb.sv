@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 //
-// Write enable and data arbitration logic for register slice conforming to Comportability guide.
+// Write enable and data arbitration logic for register slice conforming to Comportibility guide.
 
 module prim_subreg_arb
   import prim_subreg_pkg::*;
@@ -29,7 +29,7 @@ module prim_subreg_arb
 );
   import prim_mubi_pkg::*;
 
-  if ((SwAccess == SwAccessRW) || (SwAccess == SwAccessWO)) begin : gen_w
+  if (SwAccess inside {SwAccessRW, SwAccessWO}) begin : gen_w
     assign wr_en   = we | de;
     assign wr_data = (we == 1'b1) ? wd : d; // SW higher priority
     // Unused q - Prevent lint errors.
@@ -61,20 +61,20 @@ module prim_subreg_arb
     if (Mubi) begin : gen_mubi
       if (DW == 4) begin : gen_mubi4
         assign wr_data = prim_mubi_pkg::mubi4_or_hi(prim_mubi_pkg::mubi4_t'(de ? d : q),
-                                                    (we ? prim_mubi_pkg::mubi4_t'(wd) :
-                                                          prim_mubi_pkg::MuBi4False));
+                                                             (we ? prim_mubi_pkg::mubi4_t'(wd) :
+                                                                   prim_mubi_pkg::MuBi4False));
       end else if (DW == 8) begin : gen_mubi8
         assign wr_data = prim_mubi_pkg::mubi8_or_hi(prim_mubi_pkg::mubi8_t'(de ? d : q),
-                                                    (we ? prim_mubi_pkg::mubi8_t'(wd) :
-                                                          prim_mubi_pkg::MuBi8False));
+                                                             (we ? prim_mubi_pkg::mubi8_t'(wd) :
+                                                                   prim_mubi_pkg::MuBi8False));
       end else if (DW == 12) begin : gen_mubi12
         assign wr_data = prim_mubi_pkg::mubi12_or_hi(prim_mubi_pkg::mubi12_t'(de ? d : q),
-                                                     (we ? prim_mubi_pkg::mubi12_t'(wd) :
-                                                           prim_mubi_pkg::MuBi12False));
+                                                              (we ? prim_mubi_pkg::mubi12_t'(wd) :
+                                                                    prim_mubi_pkg::MuBi12False));
       end else if (DW == 16) begin : gen_mubi16
         assign wr_data = prim_mubi_pkg::mubi16_or_hi(prim_mubi_pkg::mubi16_t'(de ? d : q),
-                                                     (we ? prim_mubi_pkg::mubi16_t'(wd) :
-                                                           prim_mubi_pkg::MuBi16False));
+                                                              (we ? prim_mubi_pkg::mubi16_t'(wd) :
+                                                                    prim_mubi_pkg::MuBi16False));
       end else begin : gen_invalid_mubi
         $error("%m: Invalid width for MuBi");
       end
@@ -89,20 +89,20 @@ module prim_subreg_arb
     if (Mubi) begin : gen_mubi
       if (DW == 4) begin : gen_mubi4
         assign wr_data = prim_mubi_pkg::mubi4_and_hi(prim_mubi_pkg::mubi4_t'(de ? d : q),
-                                                     (we ? prim_mubi_pkg::mubi4_t'(~wd) :
-                                                           prim_mubi_pkg::MuBi4True));
+                                                              (we ? prim_mubi_pkg::mubi4_t'(~wd) :
+                                                                    prim_mubi_pkg::MuBi4True));
       end else if (DW == 8) begin : gen_mubi8
         assign wr_data = prim_mubi_pkg::mubi8_and_hi(prim_mubi_pkg::mubi8_t'(de ? d : q),
-                                                     (we ? prim_mubi_pkg::mubi8_t'(~wd) :
-                                                           prim_mubi_pkg::MuBi8True));
+                                                              (we ? prim_mubi_pkg::mubi8_t'(~wd) :
+                                                                    prim_mubi_pkg::MuBi8True));
       end else if (DW == 12) begin : gen_mubi12
         assign wr_data = prim_mubi_pkg::mubi12_and_hi(prim_mubi_pkg::mubi12_t'(de ? d : q),
-                                                      (we ? prim_mubi_pkg::mubi12_t'(~wd) :
-                                                            prim_mubi_pkg::MuBi12True));
+                                                               (we ? prim_mubi_pkg::mubi12_t'(~wd) :
+                                                                     prim_mubi_pkg::MuBi12True));
       end else if (DW == 16) begin : gen_mubi16
         assign wr_data = prim_mubi_pkg::mubi16_and_hi(prim_mubi_pkg::mubi16_t'(de ? d : q),
-                                                      (we ? prim_mubi_pkg::mubi16_t'(~wd) :
-                                                            prim_mubi_pkg::MuBi16True));
+                                                               (we ? prim_mubi_pkg::mubi16_t'(~wd) :
+                                                                     prim_mubi_pkg::MuBi16True));
       end else begin : gen_invalid_mubi
         $error("%m: Invalid width for MuBi");
       end
@@ -114,20 +114,20 @@ module prim_subreg_arb
     if (Mubi) begin : gen_mubi
       if (DW == 4) begin : gen_mubi4
         assign wr_data = prim_mubi_pkg::mubi4_and_hi(prim_mubi_pkg::mubi4_t'(de ? d : q),
-                                                     (we ? prim_mubi_pkg::mubi4_t'(wd) :
-                                                           prim_mubi_pkg::MuBi4True));
+                                                              (we ? prim_mubi_pkg::mubi4_t'(wd) :
+                                                                    prim_mubi_pkg::MuBi4True));
       end else if (DW == 8) begin : gen_mubi8
         assign wr_data = prim_mubi_pkg::mubi8_and_hi(prim_mubi_pkg::mubi8_t'(de ? d : q),
-                                                     (we ? prim_mubi_pkg::mubi8_t'(wd) :
-                                                           prim_mubi_pkg::MuBi8True));
+                                                              (we ? prim_mubi_pkg::mubi8_t'(wd) :
+                                                                    prim_mubi_pkg::MuBi8True));
       end else if (DW == 12) begin : gen_mubi12
         assign wr_data = prim_mubi_pkg::mubi12_and_hi(prim_mubi_pkg::mubi12_t'(de ? d : q),
-                                                      (we ? prim_mubi_pkg::mubi12_t'(wd) :
-                                                            prim_mubi_pkg::MuBi12True));
+                                                               (we ? prim_mubi_pkg::mubi12_t'(wd) :
+                                                                     prim_mubi_pkg::MuBi12True));
       end else if (DW == 16) begin : gen_mubi16
         assign wr_data = prim_mubi_pkg::mubi16_and_hi(prim_mubi_pkg::mubi16_t'(de ? d : q),
-                                                      (we ? prim_mubi_pkg::mubi16_t'(wd) :
-                                                            prim_mubi_pkg::MuBi16True));
+                                                               (we ? prim_mubi_pkg::mubi16_t'(wd) :
+                                                                     prim_mubi_pkg::MuBi16True));
       end else begin : gen_invalid_mubi
         $error("%m: Invalid width for MuBi");
       end
@@ -141,20 +141,20 @@ module prim_subreg_arb
     if (Mubi) begin : gen_mubi
       if (DW == 4) begin : gen_mubi4
         assign wr_data = prim_mubi_pkg::mubi4_and_hi(prim_mubi_pkg::mubi4_t'(de ? d : q),
-                                                     (we ? prim_mubi_pkg::MuBi4False :
-                                                           prim_mubi_pkg::MuBi4True));
+                                                              (we ? prim_mubi_pkg::MuBi4False :
+                                                                    prim_mubi_pkg::MuBi4True));
       end else if (DW == 8) begin : gen_mubi8
         assign wr_data = prim_mubi_pkg::mubi8_and_hi(prim_mubi_pkg::mubi8_t'(de ? d : q),
-                                                     (we ? prim_mubi_pkg::MuBi8False :
-                                                           prim_mubi_pkg::MuBi8True));
+                                                              (we ? prim_mubi_pkg::MuBi8False :
+                                                                    prim_mubi_pkg::MuBi8True));
       end else if (DW == 12) begin : gen_mubi12
         assign wr_data = prim_mubi_pkg::mubi12_and_hi(prim_mubi_pkg::mubi12_t'(de ? d : q),
-                                                      (we ? prim_mubi_pkg::MuBi12False :
-                                                            prim_mubi_pkg::MuBi12True));
+                                                               (we ? prim_mubi_pkg::MuBi12False :
+                                                                     prim_mubi_pkg::MuBi12True));
       end else if (DW == 16) begin : gen_mubi16
         assign wr_data = prim_mubi_pkg::mubi16_and_hi(prim_mubi_pkg::mubi16_t'(de ? d : q),
-                                                      (we ? prim_mubi_pkg::mubi16_t'(wd) :
-                                                            prim_mubi_pkg::MuBi16True));
+                                                               (we ? prim_mubi_pkg::mubi16_t'(wd) :
+                                                                     prim_mubi_pkg::MuBi16True));
       end else begin : gen_invalid_mubi
         $error("%m: Invalid width for MuBi");
       end

@@ -166,7 +166,7 @@ module prim_count
 
   // We need to disable most assertions in that case using a helper signal.
   // We can't rely on err_o since some error patterns cannot be detected (e.g. all error
-  // patterns that still fulfil the sum constraint).
+  // patterns that still fullfill the sum constraint).
   logic fpv_err_present;
   assign fpv_err_present = |fpv_force;
 
@@ -175,11 +175,11 @@ module prim_count
                                                   logic signed [Width+1:0] b);
     return (a > b) ? a : b;
   endfunction
-
   function automatic logic signed [Width+1:0] min(logic signed [Width+1:0] a,
                                                   logic signed [Width+1:0] b);
     return (a < b) ? a : b;
   endfunction
+
   //VCS coverage on
   // pragma coverage on
 
@@ -292,18 +292,14 @@ module prim_count
           $past(clr_i || set_i || (commit_i && (incr_en_i || decr_en_i))),
           clk_i, err_d || fpv_err_present || !rst_ni)
 
-  // Check that count errors are reported properly in err_o
-  //
-  // This is essentially a "|=> implication", but is structured in a way to avoid generating a cover
-  // property for the left hand side if PrimCountFpv is not defined (because we won't have a way to
-  // inject an error if not)
-  `ASSERT(CntErrReported_A, ##1 $past((cnt_q[1] + cnt_q[0]) != {Width{1'b1}}) == err_o)
+  // Check that count errors are reported properly in err_d
+  `ASSERT(CntErrReported_A, ((cnt_q[1] + cnt_q[0]) != {Width{1'b1}}) == err_d)
  `ifdef PrimCountFpv
-  `COVER(CntErr_C, err_o)
+  `COVER(CntErr_C, err_d)
  `endif
 
   // This logic that will be assign to one, when user adds macro
-  // ASSERT_PRIM_COUNT_ERROR_TRIGGER_ALERT to check the error with alert, in case that prim_count
+  // CALIPTRA_ASSERT_PRIM_COUNT_ERROR_TRIGGER_ALERT to check the error with alert, in case that prim_count
   // is used in design without adding this assertion check.
   logic unused_assert_connected;
 

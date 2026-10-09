@@ -142,7 +142,7 @@ module prim_onehot_check #(
   //
   // For confidence that this is true, we use the scheme described in "Security Countermeasure
   // Verification Framework". We expect a user of prim_onehot_check to use the
-  // ASSERT_PRIM_COUNT_ERROR_TRIGGER_ALERT macro to check that they will indeed raise an alert if we
+  // CALIPTRA_ASSERT_PRIM_COUNT_ERROR_TRIGGER_ALERT macro to check that they will indeed raise an alert if we
   // set err_o.
   //
   // That macro is also designed to drive our local unused_assert_connected variable to true. We add

@@ -11,8 +11,6 @@ module prim_fifo_sync_cnt #(
   parameter int unsigned Depth = 4,
   // Whether to instantiate hardened counters
   parameter bit Secure = 1'b0,
-  // If this is set, the clr_i port will always be false
-  parameter bit NeverClears = 1'b0,
   // Width of the read and write pointers for the FIFO
   localparam int unsigned PtrW = prim_util_pkg::vbits(Depth),
   // Width of the 'current depth' output
@@ -74,9 +72,7 @@ module prim_fifo_sync_cnt #(
   if (Secure) begin : gen_secure_ptrs
     logic wptr_err;
     prim_count #(
-      .Width(WrapPtrW),
-      .PossibleActions((NeverClears ? prim_count_pkg::action_mask_t'(0) : prim_count_pkg::Clr) |
-                       prim_count_pkg::Set | prim_count_pkg::Incr)
+      .Width(WrapPtrW)
     ) u_wptr (
       .clk_i,
       .rst_ni,
@@ -94,9 +90,7 @@ module prim_fifo_sync_cnt #(
 
     logic rptr_err;
     prim_count #(
-      .Width(WrapPtrW),
-      .PossibleActions((NeverClears ? prim_count_pkg::action_mask_t'(0) : prim_count_pkg::Clr) |
-                       prim_count_pkg::Set | prim_count_pkg::Incr)
+      .Width(WrapPtrW)
     ) u_rptr (
       .clk_i,
       .rst_ni,
@@ -140,10 +134,6 @@ module prim_fifo_sync_cnt #(
     end
 
     assign err_o = '0;
-  end
-
-  if (NeverClears) begin : gen_never_clears
-    `ASSERT(NeverClears_A, !clr_i)
   end
 
 endmodule // prim_fifo_sync_cnt

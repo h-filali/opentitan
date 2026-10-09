@@ -8,6 +8,9 @@
 
 module sha3pad
   import sha3_pkg::*;
+  import lc_ctrl_state_pkg::*;
+  import lc_ctrl_reg_pkg::*;
+  import lc_ctrl_pkg::*;
 #(
   parameter  bit EnMasking = 0,
   localparam int Share = (EnMasking) ? 2 : 1
@@ -52,13 +55,6 @@ module sha3pad
   // message from MSG_FIFO and pad the trailing bits specified in the SHA3
   // standard. Look at `funcpad` signal for the values.
   input process_i,
-  // stop_i is a pulse signal marking that the user has requested a context
-  // save. The pad logic ends the absorb such that the state can be saved and
-  // restored later on. This is only possible at a block boundary.
-  input prim_mubi_pkg::mubi4_t stop_i,
-  // continue_i is a pulse signal restoring a previously saved state. No
-  // prefix block is sent again as it is already part of the restored state.
-  input continue_i,
   // done_i is a pulse signal to make the pad logic to clear internal variables
   // and to move back to the Idle state for next hashing process.
   // done_i may not needed if sw controls the keccak_round directly.
@@ -68,14 +64,6 @@ module sha3pad
   // control the Keccak-round if it needs more digest, or complete by asserting
   // `done_i`
   output prim_mubi_pkg::mubi4_t absorbed_o,
-
-  // Indication that the absorb has been stopped and the keccak state holds a
-  // context that SW can save.
-  output prim_mubi_pkg::mubi4_t stopped_o,
-
-  // Indication that stopping was requested while the message is not a multiple
-  // of the keccak rate.
-  output logic stop_error_o,
 
   // Life cycle
   input  lc_ctrl_pkg::lc_tx_t lc_escalate_en_i,
@@ -274,7 +262,7 @@ module sha3pad
 
   // `process_latched` latches the `process_i` input before it is seen in the
   // FSM. `process_i` may follow `start_i` too fast so that the FSM may not
-  // see it fast enough in case of cSHAKE mode. cSHAKE needs to process the
+  // see it fast enought in case of cSHAKE mode. cSHAKE needs to process the
   // prefix prior to see the process indicator.
   logic process_latched;
 
@@ -287,33 +275,6 @@ module sha3pad
       process_latched <= 1'b0;
     end
   end
-
-  // `stop_latched` holds the context switch request until the message FIFO has
-  // been drained, which is signalled by `process_i`.
-  prim_mubi_pkg::mubi4_t stop_latched;
-
-  always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) begin
-      stop_latched <= prim_mubi_pkg::MuBi4False;
-    end else if (prim_mubi_pkg::mubi4_test_true_strict(stop_i)) begin
-      stop_latched <= prim_mubi_pkg::MuBi4True;
-    end else if (prim_mubi_pkg::mubi4_test_true_strict(done_i)) begin
-      stop_latched <= prim_mubi_pkg::MuBi4False;
-    end
-  end
-
-  // `msgbuf_valid` tracks whether a partial message is beeing processed
-  logic msgbuf_valid;
-
-  always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni)         msgbuf_valid <= 1'b 0;
-    else if (en_msgbuf)  msgbuf_valid <= 1'b 1;
-    else if (clr_msgbuf) msgbuf_valid <= 1'b 0;
-  end
-
-  // The context can only be saved after a complete block has been absorbed.
-  logic block_aligned;
-  assign block_aligned = (sent_message == '0) && !msgbuf_valid;
 
   // State Register ===========================================================
   pad_st_e st, st_d;
@@ -336,19 +297,6 @@ module sha3pad
     else         absorbed_o <= absorbed_d;
   end
 
-  // SEC_CM: ABSORBED.CTRL.MUBI
-  prim_mubi_pkg::mubi4_t stopped_d;
-  always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) stopped_o <= prim_mubi_pkg::MuBi4False;
-    else         stopped_o <= stopped_d;
-  end
-
-  logic stop_error_d;
-  always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) stop_error_o <= 1'b 0;
-    else         stop_error_o <= stop_error_d;
-  end
-
   always_comb begin
     st_d = st;
 
@@ -365,9 +313,6 @@ module sha3pad
     clr_msgbuf = 1'b 0;
 
     absorbed_d = prim_mubi_pkg::MuBi4False;
-    stopped_d  = prim_mubi_pkg::MuBi4False;
-
-    stop_error_d = 1'b 0;
 
     sparse_fsm_error_o = 1'b 0;
 
@@ -376,7 +321,7 @@ module sha3pad
       // In Idle state, the FSM checks if the software (or upper FSM) initiates
       // the hash process. If `start_i` is asserted (assume it is pulse), FSM
       // starts to push the data into the keccak round logic. Depending on the
-      // hashing mode, FSM may push additional prefix in front of the actual
+      // hashing mode, FSM may push additional prefex in front of the actual
       // message. It means, the message could be back-pressured until the first
       // prefix is processed.
       StPadIdle: begin
@@ -387,10 +332,6 @@ module sha3pad
           end else begin
             st_d = StMessage;
           end
-        end else if (continue_i) begin
-          // Resuming a saved context. The prefix block has been absorbed
-          // before saving, so it must not be sent again.
-          st_d = StMessage;
         end else begin
           st_d = StPadIdle;
         end
@@ -448,17 +389,7 @@ module sha3pad
           clr_sentmsg = 1'b 1;
           hold_msg = 1'b 1;
         end else if (process_latched || process_i) begin
-          if (prim_mubi_pkg::mubi4_test_true_strict(stop_latched)) begin
-            // Context save, skip the padding FSM state.
-            st_d = StPadIdle;
-
-            stopped_d    = prim_mubi_pkg::MuBi4True;
-            stop_error_d = ~block_aligned;
-            clr_sentmsg  = 1'b 1;
-            clr_msgbuf   = 1'b 1;
-          end else begin
-            st_d = StPad;
-          end
+          st_d = StPad;
 
           // Not asserting the msg_ready_o
           hold_msg = 1'b 1;
@@ -481,7 +412,7 @@ module sha3pad
       // Pad state just pushes the ending suffix. Depending on the mode, the
       // padding value is unique. SHA3 adds 2'b10, SHAKE adds 4'b1111, and
       // cSHAKE adds 2'b 00. Refer `function_pad`. The signal has one more bit
-      // defined to accommodate first 1 bit of `pad10*1()` function.
+      // defined to accomodate first 1 bit of `pad10*1()` function.
       StPad: begin
         sel_mux = MuxFuncPad;
 
@@ -823,31 +754,17 @@ module sha3pad
     prim_mubi_pkg::mubi4_test_true_strict(done_i) |=>
       prim_mubi_pkg::mubi4_test_false_strict(done_i))
 
-  // ASSERT output pulse signals: absorbed_o, keccak_run_o
+  // CALIPTRA_ASSERT output pulse signals: absorbed_o, keccak_run_o
   `ASSERT(AbsorbedPulse_A,
     prim_mubi_pkg::mubi4_test_true_strict(absorbed_o) |=>
       prim_mubi_pkg::mubi4_test_false_strict(absorbed_o))
   `ASSERT(KeccakRunPulse_A, keccak_run_o |=> !keccak_run_o)
-  `ASSERT(StoppedPulse_A,
-    prim_mubi_pkg::mubi4_test_true_strict(stopped_o) |=>
-      prim_mubi_pkg::mubi4_test_false_strict(stopped_o))
 
-  // An absorb either completes with padding or is stopped for a context switch
-  `ASSERT(AbsorbedStoppedExclusive_A,
-    !(prim_mubi_pkg::mubi4_test_true_strict(absorbed_o) &&
-      prim_mubi_pkg::mubi4_test_true_strict(stopped_o)))
-
-  // Stopping is only reported as an error if the message is not block aligned
-  `ASSERT(StopErrorOnlyWhenStopped_A,
-    stop_error_d |-> prim_mubi_pkg::mubi4_test_true_strict(stopped_d))
-
-  // The control signals cannot be set high at the same time
+  // start_i, done_i, process_i cannot set high at the same time
   `ASSUME(StartProcessDoneMutex_a,
     $onehot0({
       start_i,
-      continue_i,
       process_i,
-      prim_mubi_pkg::mubi4_test_true_loose(stop_i),
       prim_mubi_pkg::mubi4_test_true_loose(done_i)
     }))
 
@@ -864,7 +781,7 @@ module sha3pad
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       start_valid <= 1'b 1;
-    end else if (start_i || continue_i) begin
+    end else if (start_i) begin
       start_valid <= 1'b 0;
     end else if (prim_mubi_pkg::mubi4_test_true_strict(done_i)) begin
       start_valid <= 1'b 1;
@@ -873,7 +790,7 @@ module sha3pad
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       process_valid <= 1'b 0;
-    end else if (start_i || continue_i) begin
+    end else if (start_i) begin
       process_valid <= 1'b 1;
     end else if (process_i) begin
       process_valid <= 1'b 0;
@@ -883,8 +800,7 @@ module sha3pad
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       done_valid <= 1'b 0;
-    end else if (prim_mubi_pkg::mubi4_test_true_strict(absorbed_o) ||
-                 prim_mubi_pkg::mubi4_test_true_strict(stopped_o)) begin
+    end else if (prim_mubi_pkg::mubi4_test_true_strict(absorbed_o)) begin
       done_valid <= 1'b 1;
     end else if (prim_mubi_pkg::mubi4_test_true_strict(done_i)) begin
       done_valid <= 1'b 0;
@@ -898,7 +814,7 @@ module sha3pad
   `ASSERT(MsgReadyCondition_A, msg_ready_o |-> process_valid && !process_i)
 
   `ASSUME(ProcessCondition_M, process_i |-> process_valid)
-  `ASSUME(StartCondition_M, (start_i || continue_i) |-> start_valid)
+  `ASSUME(StartCondition_M, start_i |-> start_valid)
   `ASSUME(DoneCondition_M,
     prim_mubi_pkg::mubi4_test_true_strict(done_i) |-> done_valid)
 
@@ -912,12 +828,9 @@ module sha3pad
 `endif // SYNTHESIS
 
   // If not full block is written, the pad shall send message to keccak_round
-  // If it is end of the message, the state moves to StPad and send the request.
-  // This does not hold for a context switch, as the padding is skipped and no
-  // further data is sent to keccak_round.
+  // If it is end of the message, the state moves to StPad and send the request
   `ASSERT(CompleteBlockWhenProcess_A,
     $rose(process_latched) && (!end_of_block && !sent_blocksize )
-    && !prim_mubi_pkg::mubi4_test_true_strict(stop_latched)
     && !(st inside {StPrefixWait, StMessageWait}) |-> ##[1:5] keccak_valid_o,
     clk_i, !rst_ni || lc_ctrl_pkg::lc_tx_test_true_loose(lc_escalate_en_i))
 
@@ -929,7 +842,7 @@ module sha3pad
   // SHA3 variants: SHA3-224, SHA3-256, SHA3-384, SHA3-512
   // SHAKE, cSHAKE variants: SHAKE128, SHAKE256, cSHAKE128, cSHAKE256
   `ASSUME_FPV(ModeStrengthCombinations_M,
-    (start_i || continue_i) |->
+    start_i |->
       (mode_i == Sha3 && (strength_i inside {L224, L256, L384, L512})) ||
       ((mode_i == Shake || mode_i == CShake) && (strength_i inside {L128, L256})),
     clk_i, !rst_ni)

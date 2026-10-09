@@ -265,7 +265,6 @@ module entropy_src
   for (genvar i = 0; i < NumAlerts; i++) begin : gen_alert_tx
     prim_alert_sender #(
       .AsyncOn(AlertAsyncOn[i]),
-      .SkewCycles(AlertSkewCycles),
       .IsFatal(i)
     ) u_prim_alert_sender (
       .clk_i,

@@ -6,7 +6,6 @@
 // A AND/OR mux with a one-hot select input.
 
 `include "prim_assert.sv"
-
 module prim_onehot_mux #(
   parameter int Width  = 32,
   parameter int Inputs = 8

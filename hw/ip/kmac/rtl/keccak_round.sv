@@ -29,7 +29,7 @@
 // If masking is enabled, this implementation uses both randomness provided
 // from an external PRNG as well as intermediate results for remasking the DOM
 // multipliers below. Per clock cycle, 800b of pseudo-random data (PRD) are
-// required. A carefully designed schedule ensures to only ever update the input
+// required. A carfully designed schedule ensures to only ever update the input
 // data of the DOM multipliers when also providing fresh randomness and vice
 // versa. Updating one without the other could lead to undesired SCA leakage.
 
@@ -37,6 +37,9 @@
 
 module keccak_round
   import prim_mubi_pkg::*;
+  import lc_ctrl_state_pkg::*;
+  import lc_ctrl_reg_pkg::*;
+  import lc_ctrl_pkg::*;
 #(
   parameter int Width = 1600, // b= {25, 50, 100, 200, 400, 800, 1600}
 
@@ -50,11 +53,6 @@ module keccak_round
   parameter  int DInWidth = 64, // currently only 64bit supported
   localparam int DInEntry = Width / DInWidth,
   localparam int DInAddr  = $clog2(DInEntry),
-
-  // State write parameters. The state is restored one bus word at a time.
-  parameter  int StateWrWidth = 32,
-  localparam int StateWrEntry = Width / StateWrWidth,
-  localparam int StateWrAddr  = $clog2(StateWrEntry),
 
   // Control parameters
   parameter  bit EnMasking    = 1'b0,  // Enable SCA hardening, requires Width >= 50
@@ -85,11 +83,6 @@ module keccak_round
 
   // State out. This can be used as Digest
   output logic [Width-1:0] state_o [Share],
-
-  // State write used to restore the state.
-  input [Share-1:0]        state_we_i,
-  input [StateWrAddr-1:0]  state_waddr_i,
-  input [StateWrWidth-1:0] state_wdata_i,
 
   // Life cycle
   input  lc_ctrl_pkg::lc_tx_t lc_escalate_en_i,
@@ -217,9 +210,8 @@ module keccak_round
 
     unique case (keccak_st)
       KeccakStIdle: begin
-        if (valid_i || |state_we_i) begin
-          // State machine allows Sponge Absorbing only in Idle state. A state write from SW
-          // reuses the same datapath.
+        if (valid_i) begin
+          // State machine allows Sponge Absorbing only in Idle state.
           keccak_st_d = KeccakStIdle;
 
           xor_message    = 1'b 1;
@@ -367,7 +359,7 @@ module keccak_round
         // We don't need fresh randomness for the next cycle as the DOM
         // multipliers inside keccak_2share will keep seeing the first
         // lane halves in the next cycle. If we updated the randomness,
-        // old data got combined with fresh randomness which is not
+        // old data got combined with frash randomness which is not
         // desirable as it could lead to SCA leakage.
         update_storage = 1'b 1;
 
@@ -473,26 +465,6 @@ module keccak_round
     .out_o(rst_n)
   );
 
-  // The state write reuses the message XOR datapath. Before writing to the state, the state
-  // needs to be cleared, which is taken care of by the hardware.
-  logic [DInAddr-1:0]  xor_addr;
-  logic [DInWidth-1:0] xor_data[Share];
-
-  always_comb begin : xor_data_mux
-    xor_addr = addr_i;
-    xor_data = data_i;
-
-    if (|state_we_i) begin
-      xor_addr = state_waddr_i[StateWrAddr-1:1];
-      for (int j = 0 ; j < Share ; j++) begin
-        xor_data[j] = '0;
-        if (state_we_i[j]) begin
-          xor_data[j][state_waddr_i[0]*StateWrWidth+:StateWrWidth] = state_wdata_i;
-        end
-      end
-    end
-  end : xor_data_mux
-
   logic [Width-1:0] storage   [Share];
   logic [Width-1:0] storage_d [Share];
   always_ff @(posedge clk_i or negedge rst_n) begin
@@ -517,12 +489,12 @@ module keccak_round
     if (xor_message) begin
       for (int j = 0 ; j < Share ; j++) begin
         for (int unsigned i = 0 ; i < DInEntry ; i++) begin
-          // ICEBOX(#18029): handle If Width is not integer divisible by DInWidth
+          // ICEBOX(#18029): handle If Width is not integer divisable by DInWidth
           // Currently it is not allowed to have partial write
           // Please see the Assertion `WidthDivisableByDInWidth_A`
-          if (xor_addr == i[DInAddr-1:0]) begin
+          if (addr_i == i) begin
             storage_d[j][i*DInWidth+:DInWidth] =
-              storage[j][i*DInWidth+:DInWidth] ^ xor_data[j];
+              storage[j][i*DInWidth+:DInWidth] ^ data_i[j];
           end else begin
             storage_d[j][i*DInWidth+:DInWidth] = storage[j][i*DInWidth+:DInWidth];
           end
@@ -614,27 +586,14 @@ module keccak_round
   // Assertions //
   ////////////////
 
-  // Only allow `DInWidth` that `Width` is integer divisible by `DInWidth`
+  // Only allow `DInWidth` that `Width` is integer divisable by `DInWidth`
   `ASSERT_INIT(WidthDivisableByDInWidth_A, (Width % DInWidth) == 0)
 
-  // The state write-back port addresses the storage in `StateWrWidth` chunks,
-  // so partial chunks at the top of the state are not supported.
-  `ASSERT_INIT(WidthDivisableByStateWrWidth_A, (Width % StateWrWidth) == 0)
-
-  // The state write is placed into one half of a DInWidth lane. `xor_addr` drops a single address
-  // bit and `state_waddr_i[0]` selects the half, so the two widths must differ by exactly a factor
-  // of two.
-  `ASSERT_INIT(DInWidthTwiceStateWrWidth_A, DInWidth == 2 * StateWrWidth)
-
-  // `xor_addr` drops the LSB of `state_waddr_i` to index the DInWidth lane. This follows from
-  // DInWidthTwiceStateWrWidth_A but is checked explicitly as the state write path relies on it.
-  `ASSERT_INIT(StateWrAddrOneBitWiderThanDInAddr_A, StateWrAddr == DInAddr + 1)
-
-  // If `run_i` triggered, it shall complete
+  // If `run_i` triggerred, it shall complete
   //`ASSERT(RunResultComplete_A, run_i ##[MaxRound:] complete_o, clk_i, !rst_ni)
 
-  // Message feed, manual run and state write-back are mutually exclusive
-  `ASSUME(OneHot0ValidRunStateWr_A, $onehot0({valid_i, run_i, |state_we_i}), clk_i, !rst_ni)
+  // valid_i and run_i cannot be asserted at the same time
+  `ASSUME(OneHot0ValidAndRun_A, $onehot0({valid_i, run_i}), clk_i, !rst_ni)
 
   // valid_i, run_i only asserted in Idle state
   `ASSUME(ValidRunAssertStIdle_A, valid_i || run_i |-> keccak_st == KeccakStIdle, clk_i, !rst_ni)

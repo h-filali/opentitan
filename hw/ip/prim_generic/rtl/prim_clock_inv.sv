@@ -4,7 +4,6 @@
 //
 // Clock inverter
 //   Varies on the process
-
 module prim_clock_inv #(
   parameter bit HasScanMode = 1'b1,
   parameter bit NoFpgaBufG  = 1'b0 // only used in FPGA case

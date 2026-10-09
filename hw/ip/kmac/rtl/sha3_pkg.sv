@@ -12,8 +12,8 @@ package sha3_pkg;
   // specification. But sha3pad logic assumes the value as 1600.
   parameter int StateW = 1600;
 
-  // Function Name (N) and Customization String (S) shall be
-  // smaller than 2**256 bits and integer divisible by 8.
+  // Function Name (N) and Customzation String (S) shall be
+  // smaller than 2**256 bits and integer divisiable by 8.
   parameter int FnWidth = 32;  // up to 32bit Function Name
   parameter int CsWidth = 256; // up to 256bit Customization Input
 
@@ -47,7 +47,7 @@ package sha3_pkg;
   //    divides 1600 keccak state `Width`. Choose the value accordingly.
   // 2. sha3pad module has fixed width mux for funcpad logic. If MsgWidth is
   //    changed, the logic also need to be revised.
-  // 3. kmac core logic also has fixed size mux for appending output length.
+  // 3. kmac core logic also has fixed size mux for appeding output length.
   //    Revise the case statement to fit into revised MsgWidth value.
   parameter int MsgWidth = 64;
   parameter int MsgStrbW = MsgWidth / 8;
@@ -138,9 +138,13 @@ package sha3_pkg;
     // completed. The main indicator is `absorbed` signal.
     StAbsorb_sparse = 6'b100001,
 
-    // The absorb has been stopped at a block boundary for a context save. The
-    // Keccak state is exposed to SW and only the Done command is accepted.
-    StStop_sparse = 6'b011101,
+    // Reserved state for context-switching. See #3479.
+    // Abort stage can be moved from StAbsorb stage. It basically holds the
+    // keccak round operation and opens up the internal state variable to the
+    // software. This stage is for the software to pause current operation and
+    // store the internal state elsewhere then initiates new KMAC/SHA3 process.
+    // StAbort only can be moved to _StFlush_.
+    //StAbort_sparse = 6'b011101,
 
     // Squeeze stage allows the software to read the internal state.
     // If `EnMasking`, it opens the read permission of two share of the state.
@@ -149,7 +153,7 @@ package sha3_pkg;
     // of the state (3200bits if `EnMasking`).
     StSqueeze_sparse = 6'b001011,
 
-    // ManualRun stage initiates the keccak round and waits the completion.
+    // ManualRun stage initiaties the keccak round and waits the completion.
     // This state is moved from Squeeze state by writing 1 to manual_run CSR.
     // When keccak round is completed, it goes back to Squeeze state.
     StManualRun_sparse = 6'b010000,
@@ -165,18 +169,18 @@ package sha3_pkg;
   typedef enum logic [StateWidthLogic-1:0] {
     StIdle,
     StAbsorb,
+    //StAbort,
     StSqueeze,
     StManualRun,
     StFlush,
-    StError,
-    StStop
+    StError
   } sha3_st_e;
 
   function automatic sha3_st_e sparse2logic(sha3_st_sparse_e st);
     unique case (st)
       StIdle_sparse      : return StIdle;
       StAbsorb_sparse    : return StAbsorb;
-      StStop_sparse      : return StStop;
+      //StAbort_sparse   : return StAbort;
       StSqueeze_sparse   : return StSqueeze;
       StManualRun_sparse : return StManualRun;
       StFlush_sparse     : return StFlush;

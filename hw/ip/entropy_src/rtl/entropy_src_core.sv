@@ -6,7 +6,12 @@
 //
 `include "prim_assert.sv"
 
-module entropy_src_core import entropy_src_pkg::*; #(
+module entropy_src_core
+  import entropy_src_pkg::*;
+  import lc_ctrl_state_pkg::*;
+  import lc_ctrl_reg_pkg::*;
+  import lc_ctrl_pkg::*;
+#(
   parameter int RngBusWidth           = 4,
   parameter int RngBusBitSelWidth     = 2,
   parameter int HealthTestWindowWidth = 18,
@@ -2701,11 +2706,6 @@ module entropy_src_core import entropy_src_pkg::*; #(
     .run_i      (1'b0             ), // For software application
     .done_i     (sha3_done        ),
 
-    .stop_i       (1'b0),
-    .continue_i   (1'b0),
-    .stopped_o    (),
-    .stop_error_o (),
-
     // LC escalation
     .lc_escalate_en_i (lc_ctrl_pkg::Off),
 
@@ -2718,12 +2718,6 @@ module entropy_src_core import entropy_src_pkg::*; #(
 
     .state_valid_o (sha3_state_vld),
     .state_o       (sha3_state),
-
-    // State write - not used, no context save and restore support
-    .state_we_i          ('0),
-    .state_waddr_i       ('0),
-    .state_wdata_i       ('0),
-    .state_clear_i       (prim_mubi_pkg::MuBi4False),
 
     // REQ/ACK interface to avoid power spikes
     .run_req_o(sha3_block_busy),
@@ -3043,7 +3037,6 @@ module entropy_src_core import entropy_src_pkg::*; #(
   // Assertions
   //--------------------------------------------
 `ifdef INC_ASSERT
-`include "prim_macros.svh"
 
   // Assert that we request high quality entropy only when the rng_fips field of the conf register
   // is set to Mubi4True.
@@ -3289,20 +3282,26 @@ module entropy_src_core import entropy_src_pkg::*; #(
       end else begin
         ht_state_d = HtStNoResult;
       end
-      if (ht_state_q == HtStFailed) begin
-        `ASSERT_I(NoPushAfterFailedHealthTest_A, rst_ni !== 1'b1 || !main_stage_push_raw)
-      end
     end
     // If not enabled, always clear to no result.
     if (!es_delayed_enable) begin
       ht_state_d = HtStNoResult;
     end
   end
+  `ASSERT(NoPushAfterFailedHealthTest_A,
+          (bsc_state_q == BscStPushed) && (ht_state_q == HtStFailed) |-> !main_stage_push_raw)
 
   // Count number of bits that are expected to have gotten pushed into precon FIFO and into esfinal
   // FIFO after boot and startup checks and while bypass mode was disabled.
   logic [63:0] precon_post_startup_exp_push_bit_cnt_d, precon_post_startup_exp_push_bit_cnt_q;
   logic [63:0] esfinal_post_startup_exp_push_bit_cnt_d, esfinal_post_startup_exp_push_bit_cnt_q;
+  // Entropy Source gets disabled after boot and startup checks have been completed.
+  logic        precon_post_startup_disable;
+  logic [63:0] precon_post_startup_diff;
+  assign precon_post_startup_disable = (bsc_state_q != BscStIncomplete) &&
+                                       (bsc_state_d == BscStIncomplete);
+  assign precon_post_startup_diff = precon_post_startup_push_bit_cnt_q -
+                                    precon_post_startup_exp_push_bit_cnt_q;
   always_comb begin
     esfinal_post_startup_exp_push_bit_cnt_d = esfinal_post_startup_exp_push_bit_cnt_q;
     precon_post_startup_exp_push_bit_cnt_d = precon_post_startup_exp_push_bit_cnt_q;
@@ -3325,19 +3324,18 @@ module entropy_src_core import entropy_src_pkg::*; #(
     // When Entropy Source gets disabled after boot and startup checks have been completed, add the
     // number of bits that have been pushed into precon FIFO since the last conditioner output to
     // the expected number of bits.
-    if ((bsc_state_q != BscStIncomplete) && (bsc_state_d == BscStIncomplete)) begin
-      logic [63:0] diff_;
-      diff_ = precon_post_startup_push_bit_cnt_q - precon_post_startup_exp_push_bit_cnt_q;
-      // Assert that the difference is not negative.
-      `ASSERT_I(PreconPostStartupDiffNonNegative_A,
-                rst_ni !== 1'b1 || (precon_post_startup_push_bit_cnt_q >=
-                                    precon_post_startup_exp_push_bit_cnt_q))
-      // Assert that the difference is smaller than the number of bits that would have sufficed to
-      // get pushed into the conditioner.
-      `ASSERT_I(PreconPostStartupDiffSmall_A, rst_ni !== 1'b1 || diff_ < health_test_window)
-      precon_post_startup_exp_push_bit_cnt_d += diff_;
+    if (precon_post_startup_disable) begin
+      precon_post_startup_exp_push_bit_cnt_d += precon_post_startup_diff;
     end
   end
+  // Assert that the difference is not negative.
+  `ASSERT(PreconPostStartupDiffNonNegative_A,
+          precon_post_startup_disable |->
+          (precon_post_startup_push_bit_cnt_q >= precon_post_startup_exp_push_bit_cnt_q))
+  // Assert that the difference is smaller than the number of bits that would have sufficed to
+  // get pushed into the conditioner.
+  `ASSERT(PreconPostStartupDiffSmall_A,
+          precon_post_startup_disable |-> (precon_post_startup_diff < health_test_window))
   // This code assumes that `health_test_window` does not change dynamically; capture that in an
   // assertion ensuring it only changes when entropy_src is not enabled.
   `ASSERT(HealthTestWindowStableWhenEnabled_A,

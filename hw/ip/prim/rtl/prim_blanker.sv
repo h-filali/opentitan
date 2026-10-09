@@ -1,7 +1,6 @@
 // Copyright lowRISC contributors (OpenTitan project).
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
-
 // Convenience module for wrapping prim_and2 for use in blanking.
 // When en_i == 1 the input is fed through to the output.
 // When en_i == 0 the output is 0.
